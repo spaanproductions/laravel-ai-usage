@@ -2,9 +2,7 @@
 
 namespace SpaanProductions\LaravelAiUsage\Console\Commands;
 
-use Throwable;
 use Illuminate\Console\Command;
-use SpaanProductions\LaravelAiUsage\Support\AiProviders;
 use SpaanProductions\LaravelAiUsage\Support\AiModelSynchronizer;
 
 class SyncAiModelsCommand extends Command
@@ -16,29 +14,14 @@ class SyncAiModelsCommand extends Command
 
 	public function handle(): int
 	{
-		$synchronizer = resolve(AiModelSynchronizer::class);
-		$providers = (array) $this->option('provider') ?: AiModelSynchronizer::syncableProviders();
-		$failed = false;
+		$results = resolve(AiModelSynchronizer::class)->syncAll((array) $this->option('provider'));
 
-		foreach ($providers as $provider) {
-			try {
-				$count = $synchronizer->syncProvider($provider);
-				$this->components->info(sprintf('%s: %d model(s) synced.', AiProviders::label($provider), $count));
-			} catch (Throwable $exception) {
-				$failed = true;
-				$this->components->error(sprintf('%s: %s', AiProviders::label($provider), $exception->getMessage()));
-				report($exception);
-			}
+		foreach ($results as $result) {
+			$result['failed']
+				? $this->components->error($result['label'] . ': ' . $result['message'])
+				: $this->components->info($result['label'] . ': ' . $result['message']);
 		}
 
-		try {
-			$this->components->info(sprintf('OpenRouter: %d model(s) enriched with prices and capabilities.', $synchronizer->enrichFromOpenRouter()));
-		} catch (Throwable $exception) {
-			$failed = true;
-			$this->components->error('OpenRouter: ' . $exception->getMessage());
-			report($exception);
-		}
-
-		return $failed ? self::FAILURE : self::SUCCESS;
+		return collect($results)->contains('failed', true) ? self::FAILURE : self::SUCCESS;
 	}
 }

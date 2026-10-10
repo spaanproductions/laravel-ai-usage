@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Spatie\LaravelPackageTools\Package;
+use SpaanProductions\LaravelAiUsage\Livewire\Models;
 use SpaanProductions\LaravelAiUsage\Livewire\Records;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 use SpaanProductions\LaravelAiUsage\Livewire\Dashboard;
@@ -59,6 +60,7 @@ class LaravelAiUsageServiceProvider extends PackageServiceProvider
 		Livewire::component('ai-usage.dashboard', Dashboard::class);
 		Livewire::component('ai-usage.records', Records::class);
 		Livewire::component('ai-usage.record', RecordDetail::class);
+		Livewire::component('ai-usage.models', Models::class);
 	}
 
 	private function registerRoutes(): void
@@ -75,6 +77,7 @@ class LaravelAiUsageServiceProvider extends PackageServiceProvider
 				Route::livewire('/', Dashboard::class)->name('ai-usage.dashboard');
 				Route::livewire('/records', Records::class)->name('ai-usage.records.index');
 				Route::livewire('/records/{record}', RecordDetail::class)->name('ai-usage.records.show');
+				Route::livewire('/models', Models::class)->name('ai-usage.models.index');
 				Route::get('/assets/ai-usage.css', StylesheetController::class)->name('ai-usage.assets.css');
 			});
 	}

@@ -10,7 +10,7 @@ their own compiled CSS, so they work without your application's Tailwind build.
 
 - Records agent prompts and streams, embeddings, images, transcriptions, reranking and failovers.
 - Prices every call when it is recorded (input, cached input, cache write and output tokens) and keeps the rates used.
-- A dashboard with a chart of cost, tokens or requests (per hour, day or month) and breakdowns, a record list with filters, sorting and CSV export, and a detail page per call.
+- A dashboard with a chart of cost, tokens or requests (per hour, day or month) and breakdowns, a record list with filters, sorting and CSV export, a detail page per call, and a model list with a sync button.
 - Budgets per day, week or month, with an event and an optional mail.
 - Prompt and response text are **not** stored unless you enable it.
 
@@ -185,6 +185,7 @@ When the spend in a period crosses a threshold, `BudgetThresholdReached` fires o
 | `ai-usage.dashboard` | `/ai-usage` | Totals, a cost, tokens or requests chart and breakdowns by model, feature, provider and subject. |
 | `ai-usage.records.index` | `/ai-usage/records` | Filterable, sortable list with CSV export. |
 | `ai-usage.records.show` | `/ai-usage/records/{record}` | Tokens, cost, price snapshot, subject, metadata and content of one call. |
+| `ai-usage.models.index` | `/ai-usage/models` | The synced models with their modalities, context and prices, and a button that runs `ai-usage:sync-models`. |
 
 The pages use a standalone layout with the package's own stylesheet. To show them in your application's layout instead, set `layout` to your layout component (e.g. `layouts::app`). Then add the package views to your Tailwind sources:
 

@@ -32,7 +32,7 @@ src/
   Budgets/BudgetGuard                 once-per-period alerts (ai_usage_budget_alerts)
   Concerns/HasAiUsage                 trait for subject models
   Contracts/ProvidesAiUsageContext    optional agent interface (feature, subject)
-  Livewire/{Dashboard,Records,RecordDetail} + ConfiguredLayout
+  Livewire/{Dashboard,Records,RecordDetail,Models} + ConfiguredLayout
   Models/{AiModel,AiUsageRecord,AiUsageBudgetAlert}
   Support/{AiModelSynchronizer,AiProviders}  ai-usage:sync-models (OpenRouter prices)
 database/{migrations,factories,seeders}/
@@ -121,6 +121,12 @@ Keep these unless the reason no longer holds. Each was chosen on purpose.
   The chart follows the page's period selector; it has no own period switch or totals (by request).
   It buckets per hour (periods up to 48 h, with a per-driver hour SQL expression), day or month, and a
   toggle switches the bars between cost, tokens and requests.
+- **The Models page is read-only apart from its sync button** (no visibility toggle, reprice or usage
+  stats, by request). The sync runs synchronously through `AiModelSynchronizer::syncAll()`, shared with
+  the command. It has a search box, unlike Records, because OpenRouter alone lists hundreds of models.
+  Modality icons are inlined Heroicons in coloured badges, like OpenRouter (no icon library).
+- **The stylesheet URL carries `?v=<hash>`** (`StylesheetController::version()`): it is served with a
+  one-year `immutable` cache, so without the hash browsers keep an old build after an update.
 - **Dropdowns use a custom chevron** (`appearance: none` + padding) because the native arrow sat
   against the edge.
 - **Views render with `ViewFactory::make('ai-usage::…')`**; larastan resolves the namespaced views

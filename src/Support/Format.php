@@ -35,6 +35,34 @@ final class Format
 		return number_format((int) $tokens);
 	}
 
+	/**
+	 * A model price per 1M tokens in USD (OpenRouter), with at least the given decimals so the
+	 * column lines up, e.g. "$3.00". More decimals (up to 4) only when the price needs them,
+	 * so "$0.0001" is not rounded to "$0.00".
+	 */
+	public static function pricePerMillion(?float $price, int $decimals = 2): string
+	{
+		if ($price === null) {
+			return '—';
+		}
+
+		$formatted = rtrim(number_format($price, max($decimals, 4), '.', ','), '0');
+		$minimum = strlen(Str::before($formatted, '.')) + 1 + $decimals;
+
+		return '$' . str_pad($formatted, $minimum, '0');
+	}
+
+	/** A context window, e.g. "200K" or "1.05M". */
+	public static function contextLength(?int $tokens): string
+	{
+		return match (true) {
+			$tokens === null => '—',
+			$tokens >= 1_000_000 => rtrim(rtrim(number_format($tokens / 1_000_000, 2), '0'), '.') . 'M',
+			$tokens >= 1_000 => rtrim(rtrim(number_format($tokens / 1_000, 1), '0'), '.') . 'K',
+			default => (string) $tokens,
+		};
+	}
+
 	public static function subjectType(?string $type): string
 	{
 		return $type === null ? '—' : class_basename($type);

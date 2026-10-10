@@ -2,9 +2,11 @@
 
 namespace SpaanProductions\LaravelAiUsage\Tests\Feature;
 
+use Illuminate\Support\Facades\Http;
 use SpaanProductions\LaravelAiUsage\Models\AiModel;
 use SpaanProductions\LaravelAiUsage\Tests\TestCase;
 use SpaanProductions\LaravelAiUsage\Models\AiUsageRecord;
+use SpaanProductions\LaravelAiUsage\Support\AiModelSynchronizer;
 
 class AiUsageCommandsTest extends TestCase
 {
@@ -24,6 +26,19 @@ class AiUsageCommandsTest extends TestCase
 		$this->assertFalse($record->pricing_missing);
 		$this->assertSame(3.0, $record->total_cost);
 		$this->assertEquals(2, $record->prices['input']);
+	}
+
+	public function test_a_failing_provider_does_not_stop_the_sync(): void
+	{
+		Http::fake([
+			'api.openai.com/*' => Http::response([], 500),
+			AiModelSynchronizer::OPENROUTER_MODELS_URL => Http::response(['data' => []]),
+		]);
+
+		$this->artisan('ai-usage:sync-models')
+			->expectsOutputToContain('failed with HTTP status 500')
+			->expectsOutputToContain('OpenRouter: 0 model(s) synced.')
+			->assertFailed();
 	}
 
 	public function test_prune_deletes_rows_older_than_the_retention(): void

@@ -3,11 +3,15 @@
 namespace SpaanProductions\LaravelAiUsage\Tests\Feature;
 
 use Livewire\Livewire;
+use Illuminate\Support\Facades\Http;
+use SpaanProductions\LaravelAiUsage\Models\AiModel;
 use SpaanProductions\LaravelAiUsage\Tests\TestCase;
+use SpaanProductions\LaravelAiUsage\Livewire\Models;
 use SpaanProductions\LaravelAiUsage\Livewire\Records;
 use SpaanProductions\LaravelAiUsage\Livewire\Dashboard;
 use SpaanProductions\LaravelAiUsage\Models\AiUsageRecord;
 use SpaanProductions\LaravelAiUsage\Tests\Fixtures\Document;
+use SpaanProductions\LaravelAiUsage\Support\AiModelSynchronizer;
 
 class AiUsagePagesTest extends TestCase
 {
@@ -15,7 +19,7 @@ class AiUsagePagesTest extends TestCase
 	{
 		$record = AiUsageRecord::factory()->create();
 
-		$urls = [route('ai-usage.dashboard'), route('ai-usage.records.index'), $this->url($record)];
+		$urls = [route('ai-usage.dashboard'), route('ai-usage.records.index'), route('ai-usage.models.index'), $this->url($record)];
 
 		foreach ($urls as $url) {
 			$this->get($url)->assertRedirect();
@@ -177,6 +181,73 @@ class AiUsagePagesTest extends TestCase
 			->get(route('ai-usage.records.show', $record))
 			->assertOk()
 			->assertSee('https://example.com/documents/' . $document->id);
+	}
+
+	public function test_the_models_can_be_searched_and_filtered(): void
+	{
+		AiModel::factory()->withPricing(input: 0.15, output: 0.6)->create(['model_id' => 'gpt-6-luna', 'description' => 'A small and fast model.']);
+		AiModel::factory()->create(['model_id' => 'gpt-6-sol']);
+		AiModel::factory()->withPricing(input: 1, output: 5)->create(['provider' => 'anthropic', 'model_id' => 'claude-haiku-5-5', 'name' => 'Claude Haiku 5.5']);
+
+		Livewire::actingAs($this->createAdmin())
+			->test(Models::class)
+			->assertSee(['gpt-6-luna', 'gpt-6-sol', 'Claude Haiku 5.5', 'A small and fast model.', '$0.15', '$0.60', '/M input', '/M output'])
+			->set('search', 'haiku')
+			->assertSee('Claude Haiku 5.5')
+			->assertDontSee('gpt-6-luna')
+			->call('resetFilters')
+			->set('provider', 'openai')
+			->assertSee('gpt-6-luna')
+			->assertDontSee('Claude Haiku 5.5')
+			->set('pricing', 'missing')
+			->assertSee('gpt-6-sol')
+			->assertDontSee('gpt-6-luna');
+	}
+
+	public function test_the_models_are_sorted_newest_first(): void
+	{
+		AiModel::factory()->withPricing(input: 5, output: 20)->create(['model_id' => 'gpt-6-old', 'provider_created_at' => now()->subYear()]);
+		AiModel::factory()->withPricing(input: 1, output: 4)->create(['model_id' => 'gpt-6-new', 'provider_created_at' => now()->subDay()]);
+		AiModel::factory()->create(['model_id' => 'gpt-6-undated', 'provider_created_at' => null]);
+
+		$component = Livewire::actingAs($this->createAdmin())->test(Models::class);
+		$this->assertSame(['gpt-6-new', 'gpt-6-old', 'gpt-6-undated'], $component->viewData('models')->pluck('model_id')->all());
+		$this->assertSame('provider_created_at:desc', $component->get('order'));
+
+		$component->set('order', 'provider_created_at:asc');
+		$this->assertSame(['gpt-6-old', 'gpt-6-new', 'gpt-6-undated'], $component->viewData('models')->pluck('model_id')->all());
+
+		$component->set('order', 'input_price_per_million:desc');
+		$this->assertSame(['input_price_per_million', 'desc'], [$component->get('sort'), $component->get('direction')]);
+		$this->assertSame('gpt-6-old', $component->viewData('models')->first()->model_id);
+
+		$component->call('sortBy', 'output_price_per_million');
+		$this->assertSame('output_price_per_million:asc', $component->get('order'));
+		$this->assertSame('gpt-6-new', $component->viewData('models')->first()->model_id);
+	}
+
+	public function test_the_models_can_be_synced_from_the_page(): void
+	{
+		Http::fake([
+			'api.openai.com/*' => Http::response(['data' => [['id' => 'gpt-6-luna', 'owned_by' => 'openai', 'created' => 1_780_000_000]]]),
+			AiModelSynchronizer::OPENROUTER_MODELS_URL => Http::response(['data' => [[
+				'id' => 'openai/gpt-6-luna',
+				'name' => 'OpenAI: GPT-6 Luna',
+				'context_length' => 400_000,
+				'architecture' => ['input_modalities' => ['text', 'image'], 'output_modalities' => ['text']],
+				'pricing' => ['prompt' => '0.00000015', 'completion' => '0.0000006'],
+			]]]),
+		]);
+
+		Livewire::actingAs($this->createAdmin())
+			->test(Models::class)
+			->call('sync')
+			->assertSee(['OpenAI:', '1 model(s) synced.', 'model(s) enriched with prices and capabilities.', 'OpenAI: GPT-6 Luna', '400K']);
+
+		$model = AiModel::query()->where('provider', 'openai')->where('model_id', 'gpt-6-luna')->firstOrFail();
+		$this->assertSame(0.15, $model->input_price_per_million);
+		$this->assertSame(0.6, $model->output_price_per_million);
+		$this->assertTrue($model->acceptsInput('image'));
 	}
 
 	private function url(AiUsageRecord $record): string

@@ -2,6 +2,7 @@
 
 namespace SpaanProductions\LaravelAiUsage\Support;
 
+use Throwable;
 use RuntimeException;
 use Illuminate\Support\Str;
 use Illuminate\Support\Carbon;
@@ -27,6 +28,36 @@ class AiModelSynchronizer
 		'transcribe', 'tts', 'image', 'audio', 'realtime', 'codex', 'search', 'whisper', 'embed', 'moderation',
 		'davinci', 'babbage', 'dall-e', 'sora', 'preview', 'computer-use', 'guard', 'ocr', 'turbo', 'instruct',
 	];
+
+	/**
+	 * Sync the given providers (default: every syncable provider) and enrich all models from
+	 * OpenRouter. A failing step is reported and does not stop the others.
+	 *
+	 * @param array<int, string>|null $providers
+	 * @return array<int, array{label: string, message: string, failed: bool}>
+	 */
+	public function syncAll(?array $providers = null): array
+	{
+		$results = [];
+
+		foreach ($providers ?: self::syncableProviders() as $provider) {
+			try {
+				$results[] = ['label' => AiProviders::label($provider), 'message' => sprintf('%d model(s) synced.', $this->syncProvider($provider)), 'failed' => false];
+			} catch (Throwable $exception) {
+				report($exception);
+				$results[] = ['label' => AiProviders::label($provider), 'message' => $exception->getMessage(), 'failed' => true];
+			}
+		}
+
+		try {
+			$results[] = ['label' => 'OpenRouter', 'message' => sprintf('%d model(s) enriched with prices and capabilities.', $this->enrichFromOpenRouter()), 'failed' => false];
+		} catch (Throwable $exception) {
+			report($exception);
+			$results[] = ['label' => 'OpenRouter', 'message' => $exception->getMessage(), 'failed' => true];
+		}
+
+		return $results;
+	}
 
 	/**
 	 * Sync the models of one provider. Returns the number of models it returned.

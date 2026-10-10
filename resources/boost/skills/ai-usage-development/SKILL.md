@@ -1,6 +1,6 @@
 ---
 name: ai-usage-development
-description: Track and attribute AI token usage and cost with spaanproductions/laravel-ai-usage. Use when adding or changing laravel/ai agents or AI calls (to attribute their usage to a feature, subject or user), working with AI model prices (ai_models, AiModel, ai-usage:sync-models), AI cost budgets, the AI usage dashboard/records pages, or the ai_usage_records table.
+description: Track and attribute AI token usage and cost with spaanproductions/laravel-ai-usage. Use when adding or changing laravel/ai agents or AI calls (to attribute their usage to a feature, subject or user), working with AI model prices (ai_models, AiModel, ai-usage:sync-models), AI cost budgets, the AI usage dashboard/records/models pages, or the ai_usage_records table.
 ---
 
 # AI Usage Development
@@ -127,7 +127,7 @@ AiUsageRecord::query()->whereMorphedTo('subject', $mail)->sum('total_cost');
 
 ## Pages
 
-The routes `ai-usage.dashboard`, `ai-usage.records.index` and `ai-usage.records.show` are full-page Livewire components behind `routes.middleware` plus the `gate`. They are configured in `config/ai-usage.php`, which also sets `routes.enabled`, `routes.prefix`, `layout` and `back_link`. To restyle them, publish the views with `php artisan vendor:publish --tag=ai-usage-views`. After changing the package's own views, run `npm run build` in the package directory to rebuild `dist/ai-usage.css`.
+The routes `ai-usage.dashboard`, `ai-usage.records.index`, `ai-usage.records.show` and `ai-usage.models.index` (the synced models, with a button that runs the same sync as `ai-usage:sync-models`) are full-page Livewire components behind `routes.middleware` plus the `gate`. They are configured in `config/ai-usage.php`, which also sets `routes.enabled`, `routes.prefix`, `layout` and `back_link`. To restyle them, publish the views with `php artisan vendor:publish --tag=ai-usage-views`. After changing the package's own views, run `npm run build` in the package directory to rebuild `dist/ai-usage.css`.
 
 ## Testing
 
