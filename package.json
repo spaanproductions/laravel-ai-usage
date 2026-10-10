@@ -1,0 +1,13 @@
+{
+    "private": true,
+    "name": "laravel-ai-usage",
+    "description": "Standalone stylesheet for the AI usage pages.",
+    "scripts": {
+        "build": "tailwindcss -i ./resources/css/ai-usage.css -o ./dist/ai-usage.css --minify",
+        "dev": "tailwindcss -i ./resources/css/ai-usage.css -o ./dist/ai-usage.css --watch"
+    },
+    "devDependencies": {
+        "@tailwindcss/cli": "4.3.3",
+        "tailwindcss": "4.3.3"
+    }
+}

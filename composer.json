@@ -1,0 +1,44 @@
+{
+    "name": "spaanproductions/laravel-ai-usage",
+    "description": "Tracks the tokens and cost of every laravel/ai call, with a filterable Livewire dashboard, budgets and a synced AI model price list.",
+    "license": "proprietary",
+    "keywords": ["laravel", "livewire", "ai", "usage", "cost", "tokens"],
+    "authors": [
+        {
+            "name": "Spaan Productions",
+            "email": "info@spaanproductions.nl",
+            "homepage": "https://spaanproductions.nl"
+        }
+    ],
+    "require": {
+        "php": "^8.4",
+        "illuminate/console": "^12.0|^13.0",
+        "illuminate/contracts": "^12.0|^13.0",
+        "illuminate/database": "^12.0|^13.0",
+        "illuminate/http": "^12.0|^13.0",
+        "illuminate/notifications": "^12.0|^13.0",
+        "illuminate/support": "^12.0|^13.0",
+        "laravel/ai": "^0.9|^0.10|^0.11",
+        "livewire/livewire": "^4.0",
+        "spatie/laravel-package-tools": "^1.16"
+    },
+    "autoload": {
+        "psr-4": {
+            "SpaanProductions\\LaravelAiUsage\\": "src/",
+            "SpaanProductions\\LaravelAiUsage\\Database\\Factories\\": "database/factories/",
+            "SpaanProductions\\LaravelAiUsage\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "SpaanProductions\\LaravelAiUsage\\LaravelAiUsageServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
