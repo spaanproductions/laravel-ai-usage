@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security issue
+    url: mailto:info@spaanproductions.nl
+    about: Please report security issues by mail instead of opening a public issue.

@@ -24,7 +24,7 @@ class BudgetThresholdReachedNotification extends Notification
 		$currency = (string) config('ai-usage.currency', 'USD');
 		$percentage = (int) round($this->event->threshold * 100);
 
-		$message = (new MailMessage())
+		$message = (new MailMessage)
 			->subject(sprintf('AI budget "%s" reached %d%%', $this->event->budget, $percentage))
 			->line(sprintf(
 				'The AI spend of budget "%s"%s is %s %s this %s, %d%% of the limit of %s %s.',

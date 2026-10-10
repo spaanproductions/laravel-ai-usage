@@ -50,7 +50,7 @@ class AiUsage
 
 	public function currentContext(): UsageContext
 	{
-		return end($this->contexts) ?: new UsageContext();
+		return end($this->contexts) ?: new UsageContext;
 	}
 
 	public function enabled(): bool
@@ -107,7 +107,7 @@ class AiUsage
 
 		$metadata = [...$context->metadata, ...($attributes['metadata'] ?? [])];
 
-		$record = AiUsageRecord::query()->create([
+		$record = AiUsageRecord::create([
 			...$attributes,
 			...$tokens,
 			...$cost->toAttributes(),

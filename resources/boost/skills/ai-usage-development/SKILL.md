@@ -99,7 +99,7 @@ Link::query()->withSum('aiUsage', 'total_cost')->get();
 ## Pricing
 
 - Costs are calculated once, when the row is recorded, from the `ai_models` prices (per 1M tokens: `input_price_per_million`, `cached_input_price_per_million`, `cache_write_price_per_million`, `output_price_per_million`). The rates used are stored in `prices`.
-- laravel/ai already excludes cached tokens from the input tokens and includes reasoning tokens in the output tokens, so do not add them again.
+- `input_tokens` on a record excludes the cached tokens, and `output_tokens` includes the reasoning tokens. `Support\UsageTokens` normalizes both laravel/ai shapes: 0.x `promptTokens`/`completionTokens`, and 1.x `inputTokens`/`outputTokens`, where `inputTokens` includes the cached tokens. Read usage objects through it instead of reading their properties directly.
 - The model is matched on `provider` + `model_id`, then on the id without date/`-latest`, then on `openrouter_id`. Models without a price get `pricing_missing = true` and a cost of 0.
 - `php artisan ai-usage:sync-models` syncs the models and prices (OpenRouter catalogue). After a price change, run `php artisan ai-usage:reprice --missing-only` (or `--from=`/`--to=`, and `--dry-run` first).
 - Use `SpaanProductions\LaravelAiUsage\Models\AiModel`; there is no `App\Models\AiModel`.

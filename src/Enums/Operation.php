@@ -8,6 +8,7 @@ enum Operation: string
 	case Stream = 'stream';
 	case Embeddings = 'embeddings';
 	case Image = 'image';
+	case Audio = 'audio';
 	case Transcription = 'transcription';
 	case Rerank = 'rerank';
 	case Failover = 'failover';
@@ -19,6 +20,7 @@ enum Operation: string
 			self::Stream => 'Stream',
 			self::Embeddings => 'Embeddings',
 			self::Image => 'Image',
+			self::Audio => 'Audio',
 			self::Transcription => 'Transcription',
 			self::Rerank => 'Rerank',
 			self::Failover => 'Failover',

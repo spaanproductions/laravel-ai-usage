@@ -1,0 +1,4 @@
+providers:
+  - Livewire\LivewireServiceProvider
+  - Laravel\Ai\AiServiceProvider
+  - SpaanProductions\LaravelAiUsage\LaravelAiUsageServiceProvider
