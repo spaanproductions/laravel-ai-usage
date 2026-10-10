@@ -1,6 +1,6 @@
-@import "tailwindcss";
+/* Only the package's own Blade views are scanned, not the README, changelog or tests. */
+@import "tailwindcss" source(none);
 
-/* Scan the package's own Blade views for utility classes. */
 @source "../views";
 
 @layer base {

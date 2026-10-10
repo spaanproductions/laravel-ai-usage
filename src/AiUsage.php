@@ -18,6 +18,12 @@ use SpaanProductions\LaravelAiUsage\Contracts\ProvidesAiUsageContext;
  */
 class AiUsage
 {
+	/** Start times older than this are forgotten: the call failed without a completion event. */
+	public const STALE_AFTER_SECONDS = 3600;
+
+	/** The most start times kept, so a long-running worker never grows without bound. */
+	public const MAX_RUNNING = 1000;
+
 	/** @var array<int, UsageContext> */
 	private array $contexts = [];
 
@@ -58,9 +64,29 @@ class AiUsage
 		return (bool) config('ai-usage.enabled', true);
 	}
 
+	/**
+	 * Remember when a call started, to measure its latency. Calls that never complete (an
+	 * exception without an AgentFailed event, e.g. on laravel/ai 0.9) would otherwise stay in
+	 * memory for the life of the worker, so stale and excess start times are dropped.
+	 */
 	public function start(string $invocationId): void
 	{
-		$this->startedAt[$invocationId] = hrtime(true);
+		$now = hrtime(true);
+		$staleBefore = $now - self::STALE_AFTER_SECONDS * 1_000_000_000;
+
+		$this->startedAt = array_filter($this->startedAt, fn (int $startedAt): bool => $startedAt >= $staleBefore);
+
+		if (count($this->startedAt) >= self::MAX_RUNNING) {
+			$this->startedAt = array_slice($this->startedAt, -(self::MAX_RUNNING - 1), preserve_keys: true);
+		}
+
+		$this->startedAt[$invocationId] = $now;
+	}
+
+	/** The number of calls with a remembered start time. */
+	public function running(): int
+	{
+		return count($this->startedAt);
 	}
 
 	/** The milliseconds since the call started, forgetting the start time. */

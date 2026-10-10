@@ -1,0 +1,21 @@
+# Version update PRs for GitHub Actions and Composer only. npm (the Tailwind build tools)
+# gets no PRs: vulnerabilities in it are reported as Dependabot alerts instead.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 3
+    labels:
+      - "dependencies"
+
+  - package-ecosystem: "composer"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 3
+    labels:
+      - "dependencies"
