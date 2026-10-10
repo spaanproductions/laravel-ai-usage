@@ -10,7 +10,7 @@ their own compiled CSS, so they work without your application's Tailwind build.
 
 - Records agent prompts and streams, embeddings, images, transcriptions, reranking and failovers.
 - Prices every call when it is recorded (input, cached input, cache write and output tokens) and keeps the rates used.
-- A dashboard with a cost chart and breakdowns, a record list with filters, sorting and CSV export, and a detail page per call.
+- A dashboard with a chart of cost, tokens or requests (per hour, day or month) and breakdowns, a record list with filters, sorting and CSV export, and a detail page per call.
 - Budgets per day, week or month, with an event and an optional mail.
 - Prompt and response text are **not** stored unless you enable it.
 
@@ -182,7 +182,7 @@ When the spend in a period crosses a threshold, `BudgetThresholdReached` fires o
 
 | Route | Path | |
 |---|---|---|
-| `ai-usage.dashboard` | `/ai-usage` | Totals, cost chart and breakdowns by model, feature, provider and subject. |
+| `ai-usage.dashboard` | `/ai-usage` | Totals, a cost, tokens or requests chart and breakdowns by model, feature, provider and subject. |
 | `ai-usage.records.index` | `/ai-usage/records` | Filterable, sortable list with CSV export. |
 | `ai-usage.records.show` | `/ai-usage/records/{record}` | Tokens, cost, price snapshot, subject, metadata and content of one call. |
 

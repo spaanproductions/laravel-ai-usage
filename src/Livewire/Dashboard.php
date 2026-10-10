@@ -17,6 +17,9 @@ use SpaanProductions\LaravelAiUsage\Support\UsageFilters;
 #[Title('AI usage')]
 class Dashboard extends Component
 {
+	/** @var array<int, string> */
+	public const METRICS = ['cost', 'tokens', 'requests'];
+
 	#[Url]
 	public string $range = '30d';
 
@@ -25,6 +28,9 @@ class Dashboard extends Component
 
 	#[Url]
 	public ?string $to = null;
+
+	#[Url]
+	public string $metric = 'cost';
 
 	public function render(): View
 	{
@@ -53,40 +59,73 @@ class Dashboard extends Component
 	}
 
 	/**
-	 * The cost per day of the period, or per month for periods longer than three months.
+	 * The chosen metric per hour for periods up to two days, per month for periods longer than three
+	 * months and per day otherwise.
 	 *
-	 * @return array{monthly: bool, max: float, bars: Collection<int, array{date: Carbon, monthly: bool, cost: float, requests: int, tokens: int}>}
+	 * @return array{granularity: string, metric: string, max: float, bars: Collection<int, array{date: Carbon, cost: float, requests: int, tokens: int}>}
 	 */
 	private function chart(Carbon $from, Carbon $until): array
 	{
-		$monthly = $from->diffInDays($until) > 92;
-		$format = $monthly ? 'Y-m' : 'Y-m-d';
+		$metric = $this->metric();
+		$granularity = match (true) {
+			$from->diffInHours($until) <= 48 => 'hour',
+			$from->diffInDays($until) > 92 => 'month',
+			default => 'day',
+		};
+		$format = ['hour' => 'Y-m-d H', 'day' => 'Y-m-d', 'month' => 'Y-m'][$granularity];
 
-		$buckets = UsageFilters::query($from, $until)
-			->selectRaw('DATE(created_at) as day, SUM(total_cost) as cost, COUNT(*) as requests, SUM(total_tokens) as tokens')
-			->groupBy(DB::raw('DATE(created_at)'))
+		$query = UsageFilters::query($from, $until);
+		$bucket = $granularity === 'hour' ? $this->hourExpression($query->getModel()->getConnection()->getDriverName()) : 'DATE(created_at)';
+
+		$buckets = $query
+			->selectRaw("{$bucket} as bucket, SUM(total_cost) as cost, COUNT(*) as requests, SUM(total_tokens) as tokens")
+			->groupBy(DB::raw($bucket))
 			->toBase()
 			->get()
-			->groupBy(fn (object $row): string => Carbon::parse($row->day)->format($format));
+			->groupBy(fn (object $row): string => Carbon::parse($row->bucket)->format($format));
 
 		$bars = collect();
-		$cursor = $monthly ? $from->copy()->startOfMonth() : $from->copy()->startOfDay();
+		$cursor = match ($granularity) {
+			'hour' => $from->copy()->startOfHour(),
+			'month' => $from->copy()->startOfMonth(),
+			default => $from->copy()->startOfDay(),
+		};
 
 		while ($cursor->lte($until) && $cursor->lte(now())) {
 			$rows = $buckets->get($cursor->format($format), collect());
 
 			$bars->push([
 				'date' => $cursor->copy(),
-				'monthly' => $monthly,
 				'cost' => (float) $rows->sum('cost'),
 				'requests' => (int) $rows->sum('requests'),
 				'tokens' => (int) $rows->sum('tokens'),
 			]);
 
-			$monthly ? $cursor->addMonthNoOverflow() : $cursor->addDay();
+			match ($granularity) {
+				'hour' => $cursor->addHour(),
+				'month' => $cursor->addMonthNoOverflow(),
+				default => $cursor->addDay(),
+			};
 		}
 
-		return ['monthly' => $monthly, 'max' => (float) $bars->max('cost'), 'bars' => $bars];
+		return ['granularity' => $granularity, 'metric' => $metric, 'max' => (float) $bars->max($metric), 'bars' => $bars];
+	}
+
+	/** The metric the chart shows; unknown values fall back to cost. */
+	private function metric(): string
+	{
+		return in_array($this->metric, self::METRICS, true) ? $this->metric : 'cost';
+	}
+
+	/** An SQL expression truncating `created_at` to the hour, as a parseable date string. */
+	private function hourExpression(string $driver): string
+	{
+		return match ($driver) {
+			'mysql', 'mariadb' => "DATE_FORMAT(created_at, '%Y-%m-%d %H:00:00')",
+			'pgsql' => "to_char(created_at, 'YYYY-MM-DD HH24:00:00')",
+			'sqlsrv' => "FORMAT(created_at, 'yyyy-MM-dd HH:00:00')",
+			default => "strftime('%Y-%m-%d %H:00:00', created_at)",
+		};
 	}
 
 	/**

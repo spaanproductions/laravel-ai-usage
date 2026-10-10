@@ -13,6 +13,8 @@ final class UsageFilters
 {
 	/** @var array<string, string> */
 	public const RANGES = [
+		'today' => 'Today',
+		'yesterday' => 'Yesterday',
 		'7d' => 'Last 7 days',
 		'30d' => 'Last 30 days',
 		'90d' => 'Last 90 days',
@@ -29,6 +31,8 @@ final class UsageFilters
 	public static function range(string $range, ?string $from = null, ?string $to = null): array
 	{
 		return match ($range) {
+			'today' => [now()->startOfDay(), now()->endOfDay()],
+			'yesterday' => [now()->subDay()->startOfDay(), now()->subDay()->endOfDay()],
 			'7d' => [now()->subDays(6)->startOfDay(), now()->endOfDay()],
 			'90d' => [now()->subDays(89)->startOfDay(), now()->endOfDay()],
 			'this_month' => [now()->startOfMonth(), now()->endOfMonth()],

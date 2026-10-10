@@ -57,7 +57,7 @@ class AiUsagePagesTest extends TestCase
 
 		$component = Livewire::actingAs($this->createAdmin())->test(Dashboard::class);
 
-		$this->assertFalse($component->viewData('chart')['monthly']);
+		$this->assertSame('day', $component->viewData('chart')['granularity']);
 		$this->assertCount(30, $component->viewData('chart')['bars']);
 		$this->assertSame(1.5, $component->viewData('chart')['bars']->sum('cost'));
 
@@ -66,7 +66,53 @@ class AiUsagePagesTest extends TestCase
 		$this->assertSame(5.5, $component->viewData('chart')['bars']->sum('cost'));
 
 		$component->set('range', 'this_year');
-		$this->assertTrue($component->viewData('chart')['monthly']);
+		$this->assertSame('month', $component->viewData('chart')['granularity']);
+	}
+
+	public function test_the_chart_shows_hours_for_short_periods(): void
+	{
+		$this->travelTo(now()->setTime(15, 30));
+
+		AiUsageRecord::factory()->create(['total_cost' => 1, 'created_at' => now()->setTime(9, 10)]);
+		AiUsageRecord::factory()->create(['total_cost' => 2, 'created_at' => now()->setTime(9, 50)]);
+		AiUsageRecord::factory()->create(['total_cost' => 4, 'created_at' => now()->setTime(14, 5)]);
+		AiUsageRecord::factory()->create(['total_cost' => 8, 'created_at' => now()->subDay()->setTime(23, 59)]);
+
+		$component = Livewire::actingAs($this->createAdmin())
+			->test(Dashboard::class)
+			->set('range', 'today')
+			->assertSee('Cost per hour');
+
+		$bars = $component->viewData('chart')['bars'];
+
+		$this->assertSame('hour', $component->viewData('chart')['granularity']);
+		$this->assertCount(16, $bars);
+		$this->assertSame(3.0, $bars[9]['cost']);
+		$this->assertSame(2, $bars[9]['requests']);
+		$this->assertSame(4.0, $bars[14]['cost']);
+		$this->assertSame(7.0, $bars->sum('cost'));
+
+		$component->set('range', 'yesterday');
+		$this->assertCount(24, $component->viewData('chart')['bars']);
+		$this->assertSame(8.0, $component->viewData('chart')['bars'][23]['cost']);
+	}
+
+	public function test_the_chart_can_show_tokens_or_requests(): void
+	{
+		AiUsageRecord::factory()->create(['total_cost' => 1, 'total_tokens' => 300]);
+		AiUsageRecord::factory()->create(['total_cost' => 1, 'total_tokens' => 200]);
+
+		$component = Livewire::actingAs($this->createAdmin())->test(Dashboard::class);
+		$this->assertSame(2.0, $component->viewData('chart')['max']);
+
+		$component->set('metric', 'tokens')->assertSee('Tokens per day');
+		$this->assertSame(500.0, $component->viewData('chart')['max']);
+
+		$component->set('metric', 'requests')->assertSee('Requests per day');
+		$this->assertSame(2.0, $component->viewData('chart')['max']);
+
+		$component->set('metric', 'nonsense')->assertSee('Cost per day');
+		$this->assertSame('cost', $component->viewData('chart')['metric']);
 	}
 
 	public function test_the_records_can_be_filtered_and_sorted(): void

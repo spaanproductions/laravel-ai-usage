@@ -2,6 +2,12 @@
 
 All notable changes to `spaanproductions/laravel-ai-usage` are documented in this file.
 
+## Unreleased
+
+- "Today" and "Yesterday" periods on the dashboard and the record list.
+- The dashboard chart shows hours for periods of up to two days.
+- The dashboard chart can show cost, tokens or requests.
+
 ## v0.1.0 - 2026-10-10
 
 First release.

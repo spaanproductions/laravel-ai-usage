@@ -40,10 +40,31 @@
 		</a>
 	</div>
 
+	@php
+		$metrics = ['cost' => 'Cost', 'tokens' => 'Tokens', 'requests' => 'Requests'];
+		$formatMetric = fn (float|int $value): string => match ($chart['metric']) {
+			'tokens' => Format::tokens((int) $value),
+			'requests' => number_format((int) $value),
+			default => Format::cost($value, $currency),
+		};
+		$axisFormat = ['hour' => 'H:00', 'day' => 'D j M', 'month' => 'M Y'][$chart['granularity']];
+	@endphp
+
 	<section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-		<div class="flex items-center justify-between">
-			<h2 class="text-sm font-semibold text-slate-900">Cost per {{ $chart['monthly'] ? 'month' : 'day' }}</h2>
-			<span class="text-xs text-slate-400">max {{ Format::cost($chart['max'], $currency) }}</span>
+		<div class="flex flex-wrap items-center justify-between gap-2">
+			<h2 class="text-sm font-semibold text-slate-900">{{ $metrics[$chart['metric']] }} per {{ $chart['granularity'] }}</h2>
+			<div class="flex items-center gap-3">
+				<span class="text-xs text-slate-400">max {{ $formatMetric($chart['max']) }}</span>
+				<div class="inline-flex rounded-lg border border-slate-300 p-0.5 text-xs">
+					@foreach ($metrics as $value => $label)
+						<button type="button" wire:click="$set('metric', '{{ $value }}')" @class([
+							'rounded-md px-2.5 py-1 font-medium transition',
+							'bg-indigo-600 text-white' => $chart['metric'] === $value,
+							'text-slate-600 hover:bg-slate-100' => $chart['metric'] !== $value,
+						])>{{ $label }}</button>
+					@endforeach
+				</div>
+			</div>
 		</div>
 
 		@if ($chart['max'] > 0)
@@ -54,13 +75,17 @@
 						@php
 							$position = $loop->index / max(1, $loop->count - 1);
 						@endphp
-						<a href="{{ route('ai-usage.records.index', ['range' => 'custom', 'from' => $bar['date']->toDateString(), 'to' => ($bar['monthly'] ? $bar['date']->copy()->endOfMonth() : $bar['date'])->toDateString()]) }}" wire:navigate
+						@php
+							$value = $bar[$chart['metric']];
+						@endphp
+						{{-- Records filter by date, so an hour bar opens its whole day. --}}
+						<a href="{{ route('ai-usage.records.index', ['range' => 'custom', 'from' => $bar['date']->toDateString(), 'to' => ($chart['granularity'] === 'month' ? $bar['date']->copy()->endOfMonth() : $bar['date'])->toDateString()]) }}" wire:navigate
 							class="group relative flex h-full flex-1 items-end">
 							<div @class([
 								'w-full rounded-t transition',
-								'bg-indigo-500 group-hover:bg-indigo-700' => $bar['cost'] > 0,
-								'bg-slate-100 group-hover:bg-slate-200' => $bar['cost'] <= 0,
-							]) style="height: {{ $bar['cost'] > 0 ? max(1, round($bar['cost'] / $chart['max'] * 100, 2)) : 1 }}%"></div>
+								'bg-indigo-500 group-hover:bg-indigo-700' => $value > 0,
+								'bg-slate-100 group-hover:bg-slate-200' => $value <= 0,
+							]) style="height: {{ $value > 0 ? max(1, round($value / $chart['max'] * 100, 2)) : 1 }}%"></div>
 
 							<div @class([
 								'pointer-events-none absolute bottom-full z-10 mb-2 hidden w-max rounded-lg bg-slate-900 px-3 py-2 text-xs text-white shadow-lg group-hover:block',
@@ -68,7 +93,13 @@
 								'right-0' => $position > 0.8,
 								'left-1/2 -translate-x-1/2' => $position >= 0.2 && $position <= 0.8,
 							])>
-								<p class="font-medium">{{ $bar['date']->translatedFormat($bar['monthly'] ? 'F Y' : 'l j F Y') }}</p>
+								<p class="font-medium">
+									@switch($chart['granularity'])
+										@case('hour') {{ $bar['date']->format('H:00') }} – {{ $bar['date']->format('H:59') }}, {{ $bar['date']->translatedFormat('D j M') }} @break
+										@case('month') {{ $bar['date']->translatedFormat('F Y') }} @break
+										@default {{ $bar['date']->translatedFormat('l j F Y') }}
+									@endswitch
+								</p>
 								<p class="mt-0.5 text-base font-semibold">{{ Format::cost($bar['cost'], $currency) }}</p>
 								<p class="text-slate-300">{{ number_format($bar['requests']) }} requests · {{ Format::tokens($bar['tokens']) }} tokens</p>
 							</div>
@@ -77,12 +108,12 @@
 				</div>
 			</div>
 			<div class="mt-2 flex justify-between text-xs text-slate-400">
-				<span>{{ $chart['bars']->first()['date']->translatedFormat($chart['monthly'] ? 'M Y' : 'D j M') }}</span>
-				<span>{{ $chart['bars']->get(intdiv($chart['bars']->count(), 2))['date']->translatedFormat($chart['monthly'] ? 'M Y' : 'D j M') }}</span>
-				<span>{{ $chart['bars']->last()['date']->translatedFormat($chart['monthly'] ? 'M Y' : 'D j M') }}</span>
+				<span>{{ $chart['bars']->first()['date']->translatedFormat($axisFormat) }}</span>
+				<span>{{ $chart['bars']->get(intdiv($chart['bars']->count(), 2))['date']->translatedFormat($axisFormat) }}</span>
+				<span>{{ $chart['bars']->last()['date']->translatedFormat($axisFormat) }}</span>
 			</div>
 		@else
-			<p class="py-12 text-center text-sm text-slate-400">No costs in this period.</p>
+			<p class="py-12 text-center text-sm text-slate-400">{{ $chart['metric'] === 'cost' ? 'No costs' : 'No usage' }} in this period.</p>
 		@endif
 	</section>
 
