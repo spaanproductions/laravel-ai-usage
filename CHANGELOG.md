@@ -2,6 +2,11 @@
 
 All notable changes to `spaanproductions/laravel-ai-usage` are documented in this file.
 
+## v0.1.2 - 2026-10-10
+
+- A "Models" page next to Dashboard and Records: every synced model with its summary, modality icons, context and prices per million tokens, filterable by provider, pricing and search, sorted newest first with a sort dropdown, and a "Sync models" button that runs the same sync as `ai-usage:sync-models`.
+- The stylesheet URL carries a version hash, so browsers load the new stylesheet after an update instead of keeping the cached one for a year.
+
 ## v0.1.1 - 2026-10-10
 
 - "Today" and "Yesterday" periods on the dashboard and the record list.
