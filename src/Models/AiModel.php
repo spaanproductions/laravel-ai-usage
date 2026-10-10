@@ -46,9 +46,13 @@ class AiModel extends Model
 	use HasFactory;
 	use SoftDeletes;
 
-	protected $table = 'ai_models';
-
 	public $guarded = [];
+
+	/** The table name from `ai-usage.tables.models`, so it can be changed when the name is taken. */
+	public function getTable(): string
+	{
+		return (string) config('ai-usage.tables.models', 'ai_models');
+	}
 
 	protected static function newFactory(): AiModelFactory
 	{

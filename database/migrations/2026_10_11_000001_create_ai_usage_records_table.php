@@ -7,7 +7,7 @@ use Illuminate\Database\Migrations\Migration;
 return new class extends Migration {
 	public function up(): void
 	{
-		Schema::create('ai_usage_records', function (Blueprint $table) {
+		Schema::create(config('ai-usage.tables.records', 'ai_usage_records'), function (Blueprint $table) {
 			$table->id();
 			$table->string('invocation_id')->nullable()->index();
 			$table->string('conversation_id')->nullable()->index();
@@ -46,6 +46,6 @@ return new class extends Migration {
 
 	public function down(): void
 	{
-		Schema::dropIfExists('ai_usage_records');
+		Schema::dropIfExists(config('ai-usage.tables.records', 'ai_usage_records'));
 	}
 };

@@ -97,6 +97,9 @@ Keep these unless the reason no longer holds. Each was chosen on purpose.
 
 ### Database
 
+- **Table names are configurable** (`ai-usage.tables`), for hosts that already have e.g. an `ai_models`
+  table. The models override `getTable()` and the migrations read the same config, so never hard-code a
+  table name in queries; go through the model (`(new AiUsageRecord)->getTable()`) when SQL needs it.
 - **Migrations are publish-only (Laravel's advice for packages), never auto-loaded.** Two tags:
   `ai-usage-migrations` (usage tables) and `ai-usage-models-migrations` (`ai_models`, separate so an app
   that already has the table can skip it). The files carry a timestamp prefix so `vendor:publish` can

@@ -7,7 +7,7 @@ use Illuminate\Database\Migrations\Migration;
 return new class extends Migration {
 	public function up(): void
 	{
-		Schema::create('ai_models', function (Blueprint $table) {
+		Schema::create(config('ai-usage.tables.models', 'ai_models'), function (Blueprint $table) {
 			$table->id();
 			$table->string('provider');
 			$table->string('model_id');
@@ -35,6 +35,6 @@ return new class extends Migration {
 
 	public function down(): void
 	{
-		Schema::dropIfExists('ai_models');
+		Schema::dropIfExists(config('ai-usage.tables.models', 'ai_models'));
 	}
 };
