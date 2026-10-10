@@ -43,6 +43,16 @@ php artisan vendor:publish --tag=ai-usage-models-migrations
 php artisan migrate
 ```
 
+If one of the table names (`ai_models`, `ai_usage_records`, `ai_usage_budget_alerts`) is already taken in your application, publish the config (`php artisan vendor:publish --tag=ai-usage-config`) and change `tables` before running the migrations. The migrations and the models both read these names:
+
+```php
+'tables' => [
+    'models' => 'ai_models',
+    'records' => 'ai_usage_records',
+    'budget_alerts' => 'ai_usage_budget_alerts',
+],
+```
+
 Sync the AI models and their prices. Every provider with an API key in `config/ai.php` is synced, plus the public OpenRouter catalogue, which is always included:
 
 ```bash

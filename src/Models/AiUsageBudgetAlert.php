@@ -20,9 +20,13 @@ use Illuminate\Database\Eloquent\Model;
  */
 class AiUsageBudgetAlert extends Model
 {
-	protected $table = 'ai_usage_budget_alerts';
-
 	public $guarded = [];
+
+	/** The table name from `ai-usage.tables.budget_alerts`, so it can be changed when the name is taken. */
+	public function getTable(): string
+	{
+		return (string) config('ai-usage.tables.budget_alerts', 'ai_usage_budget_alerts');
+	}
 
 	protected function casts(): array
 	{

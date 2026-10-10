@@ -36,6 +36,23 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Tables
+	|--------------------------------------------------------------------------
+	|
+	| The database tables of the package. Change a name when your application
+	| already has a table with that name; the migrations and the models both
+	| read these, so set them before running the migrations.
+	|
+	*/
+
+	'tables' => [
+		'models' => 'ai_models',
+		'records' => 'ai_usage_records',
+		'budget_alerts' => 'ai_usage_budget_alerts',
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Pricing
 	|--------------------------------------------------------------------------
 	|

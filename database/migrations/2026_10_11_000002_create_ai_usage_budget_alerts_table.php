@@ -7,7 +7,7 @@ use Illuminate\Database\Migrations\Migration;
 return new class extends Migration {
 	public function up(): void
 	{
-		Schema::create('ai_usage_budget_alerts', function (Blueprint $table) {
+		Schema::create(config('ai-usage.tables.budget_alerts', 'ai_usage_budget_alerts'), function (Blueprint $table) {
 			$table->id();
 			$table->string('budget');
 			$table->date('period_start');
@@ -23,6 +23,6 @@ return new class extends Migration {
 
 	public function down(): void
 	{
-		Schema::dropIfExists('ai_usage_budget_alerts');
+		Schema::dropIfExists(config('ai-usage.tables.budget_alerts', 'ai_usage_budget_alerts'));
 	}
 };

@@ -61,9 +61,13 @@ class AiUsageRecord extends Model
 	use HasFactory;
 	use MassPrunable;
 
-	protected $table = 'ai_usage_records';
-
 	public $guarded = [];
+
+	/** The table name from `ai-usage.tables.records`, so it can be changed when the name is taken. */
+	public function getTable(): string
+	{
+		return (string) config('ai-usage.tables.records', 'ai_usage_records');
+	}
 
 	protected static function newFactory(): AiUsageRecordFactory
 	{

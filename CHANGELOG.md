@@ -2,6 +2,10 @@
 
 All notable changes to `spaanproductions/laravel-ai-usage` are documented in this file.
 
+## Unreleased
+
+- Configurable table names (`ai-usage.tables`), used by the migrations and the models, for applications that already have a table with one of the default names.
+
 ## v0.1.2 - 2026-10-10
 
 - A "Models" page next to Dashboard and Records: every synced model with its summary, modality icons, context and prices per million tokens, filterable by provider, pricing and search, sorted newest first with a sort dropdown, and a "Sync models" button that runs the same sync as `ai-usage:sync-models`.
