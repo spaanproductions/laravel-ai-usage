@@ -2,7 +2,7 @@
 
 All notable changes to `spaanproductions/laravel-ai-usage` are documented in this file.
 
-## Unreleased
+## v0.1.3 - 2026-10-12
 
 - Configurable table names (`ai-usage.tables`), used by the migrations and the models, for applications that already have a table with one of the default names.
 
