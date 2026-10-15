@@ -2,7 +2,7 @@
 
 All notable changes to `spaanproductions/laravel-ai-usage` are documented in this file.
 
-## Unreleased
+## v0.1.4 - 2026-10-15
 
 Publish the `ai-usage-migrations` again and migrate: a new migration adds the trace columns.
 
