@@ -25,7 +25,7 @@ description: Track and attribute AI token usage and cost with spaanproductions/l
 | `Reranked` | `rerank` |
 | `ProviderFailedOver` / `AgentFailedOver` | `failover` (status `failed`, with the error) |
 
-Each row stores the provider, the model, the tokens, the cost, the latency, the invocation and conversation ids, the agent class, the feature, the subject (a morph) and the user. A failure to record is reported and never breaks the AI call. Agent fakes (`MyAgent::fake()`) are recorded too, with zero tokens.
+Each row stores the provider, the model, the tokens, the cost, the latency, the invocation and conversation ids, the trace links (`trace_id` = the root invocation, `parent_invocation_id`, `parent_tool_invocation_id` for sub-agents and calls inside tools), the agent class, the feature, the subject (a morph) and the user. Failed rows get an `error_kind` (`ErrorKind` enum). With `ai-usage.trace.enabled` on, agent rows also store the full execution trace in `trace` (instructions, input, output, attachments and `spans`: model steps with tokens and cost, tool calls with arguments and results, each with `offset_ms` and `duration_ms`); `trace.attachments` copies prompt files to a disk, and `redaction` masks sensitive keys and patterns. Use `AiUsage::withoutRecording(fn () => ...)` to skip recording. A failure to record is reported and never breaks the AI call. Agent fakes (`MyAgent::fake()`) are recorded too, with zero tokens.
 
 ## Attributing usage
 
@@ -100,7 +100,7 @@ Link::query()->withSum('aiUsage', 'total_cost')->get();
 
 - Costs are calculated once, when the row is recorded, from the `ai_models` prices (per 1M tokens: `input_price_per_million`, `cached_input_price_per_million`, `cache_write_price_per_million`, `output_price_per_million`). The rates used are stored in `prices`.
 - `input_tokens` on a record excludes the cached tokens, and `output_tokens` includes the reasoning tokens. `Support\UsageTokens` normalizes both laravel/ai shapes: 0.x `promptTokens`/`completionTokens`, and 1.x `inputTokens`/`outputTokens`, where `inputTokens` includes the cached tokens. Read usage objects through it instead of reading their properties directly.
-- The model is matched on `provider` + `model_id`, then on the id without date/`-latest`, then on `openrouter_id`. Models without a price get `pricing_missing = true` and a cost of 0.
+- The model is matched on `provider` + `model_id`, then on the id without date/`-latest`, then on `openrouter_id`, then on the longest `model_id` it extends with version suffixes only (`-v2`, `-preview`). Models without a price get `pricing_missing = true` and a cost of 0.
 - `php artisan ai-usage:sync-models` syncs the models and prices (OpenRouter catalogue). After a price change, run `php artisan ai-usage:reprice --missing-only` (or `--from=`/`--to=`, and `--dry-run` first).
 - Use `SpaanProductions\LaravelAiUsage\Models\AiModel`; there is no `App\Models\AiModel`.
 
@@ -117,7 +117,7 @@ $cost = UsageFilters::query($from, $until, ['feature' => 'document_extraction'])
 AiUsageRecord::query()->whereMorphedTo('subject', $mail)->sum('total_cost');
 ```
 
-`operation` and `status` are cast to the `Operation` and `UsageStatus` enums. `total_tokens` is input + cache read + cache write + output.
+`operation`, `status` and `error_kind` are cast to the `Operation`, `UsageStatus` and `ErrorKind` enums. `AiUsageRecord::query()->inTrace($traceId)` returns all rows of one run. `total_tokens` is input + cache read + cache write + output.
 
 ## Budgets, events and retention
 

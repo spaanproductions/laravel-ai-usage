@@ -43,6 +43,26 @@ class CostCalculatorTest extends TestCase
 		$this->assertSame(1.0, $cost->total());
 	}
 
+	public function test_a_versioned_model_id_matches_the_longest_base_model(): void
+	{
+		AiModel::factory()->withPricing(1, 5)->create(['provider' => 'anthropic', 'model_id' => 'claude-sonnet-5']);
+		$model = AiModel::factory()->withPricing(3, 15)->create(['provider' => 'anthropic', 'model_id' => 'claude-sonnet-5-5']);
+
+		$cost = resolve(CostCalculator::class)->calculate('anthropic', 'claude-sonnet-5-5-v2', 1_000_000, 0);
+
+		$this->assertSame($model->id, $cost->aiModelId);
+	}
+
+	public function test_a_model_of_another_tier_is_never_matched_by_prefix(): void
+	{
+		AiModel::factory()->withPricing(1, 5)->create(['model_id' => 'gpt-5']);
+
+		$cost = resolve(CostCalculator::class)->calculate('openai', 'gpt-5-mini-x', 1_000_000, 0);
+
+		$this->assertNull($cost->aiModelId);
+		$this->assertTrue($cost->pricingMissing);
+	}
+
 	public function test_an_openrouter_id_matches_the_model(): void
 	{
 		$model = AiModel::factory()->withPricing(1, 5)->create(['provider' => 'openrouter', 'model_id' => 'anthropic/claude-haiku-4.5', 'openrouter_id' => 'anthropic/claude-haiku-4.5']);

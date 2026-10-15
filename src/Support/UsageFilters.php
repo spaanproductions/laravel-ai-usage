@@ -25,7 +25,7 @@ final class UsageFilters
 	];
 
 	/** @var array<int, string> The filters that match a column exactly. */
-	public const COLUMNS = ['provider', 'model', 'feature', 'operation', 'status', 'subject_type', 'user_id', 'conversation_id'];
+	public const COLUMNS = ['provider', 'model', 'feature', 'operation', 'status', 'error_kind', 'subject_type', 'user_id', 'conversation_id'];
 
 	/** @return array{0: Carbon, 1: Carbon} */
 	public static function range(string $range, ?string $from = null, ?string $to = null): array

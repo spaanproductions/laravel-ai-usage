@@ -2,6 +2,18 @@
 
 All notable changes to `spaanproductions/laravel-ai-usage` are documented in this file.
 
+## Unreleased
+
+Publish the `ai-usage-migrations` again and migrate: a new migration adds the trace columns.
+
+- Execution traces. Every row links to its trace and parent call (`trace_id`, `parent_invocation_id`, `parent_tool_invocation_id`), so sub-agents and calls made inside tools form a tree on the record page.
+- `trace.enabled` (`AI_USAGE_TRACE`, off by default) stores the full trace of agent calls on laravel/ai 1.x: instructions, input, output, every model step (tokens, cost, text) and every tool call (arguments, result), with timings. The record page shows it as a waterfall with expandable spans.
+- `trace.attachments` (`AI_USAGE_TRACE_ATTACHMENTS`, off by default) copies prompt attachments to a disk, downloadable from the record page and pruned with the rows.
+- `redaction` (on by default) masks values under sensitive keys (`*_token`, `password`, `api_key`, …) and optional regex patterns in stored prompts, responses and traces.
+- Failed calls get an `error_kind` (rate limited, overloaded, connection, credits, tool error, exception), with a filter on the record list and in the CSV export.
+- `AiUsage::withoutRecording()` skips recording for a block of code.
+- Model ids with a version suffix (e.g. `claude-sonnet-5-5-v2`) are priced with their base model.
+
 ## v0.1.3 - 2026-10-12
 
 - Configurable table names (`ai-usage.tables`), used by the migrations and the models, for applications that already have a table with one of the default names.

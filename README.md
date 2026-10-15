@@ -35,7 +35,7 @@ their own compiled CSS, so they work without your application's Tailwind build.
 composer require spaanproductions/laravel-ai-usage
 ```
 
-Publish the migrations and run them. The `ai_models` table (the price list) has its own tag, so skip it if your application already has that table:
+Publish the migrations and run them (after an update, publish `ai-usage-migrations` again for new migrations). The `ai_models` table (the price list) has its own tag, so skip it if your application already has that table:
 
 ```bash
 php artisan vendor:publish --tag=ai-usage-migrations
@@ -90,6 +90,9 @@ php artisan vendor:publish --tag=ai-usage-config
 |---|---|---|
 | `enabled` | `true` | Record usage (`AI_USAGE_ENABLED`). |
 | `store_content` | `false` | Also store the prompt and response text, truncated to `content_limit` characters. |
+| `trace.enabled` | `false` | Store the full execution trace of agent calls (`AI_USAGE_TRACE`), see [Execution traces](#execution-traces). |
+| `trace.attachments` | `false` | Also copy prompt attachments to `trace.disk` / `trace.path` (`AI_USAGE_TRACE_ATTACHMENTS`). |
+| `redaction.enabled` | `true` | Mask `redaction.keys` and `redaction.patterns` in all stored content (`AI_USAGE_REDACTION`). |
 | `user_model` | `App\Models\User` | The model `user_id` points to. |
 | `currency` | `USD` | The currency of the prices (OpenRouter prices are USD). |
 | `retention_days` | `null` | Rows older than this are deleted by `model:prune`. `null` keeps everything. |
@@ -160,6 +163,22 @@ Invoice::query()->withSum('aiUsage', 'total_cost')->get(); // no N+1 in lists
 
 If the subject has an `aiUsageUrl(): ?string` method, the record detail page links to it.
 
+To skip recording for a block of code, such as health checks, wrap it in `AiUsage::withoutRecording()`:
+
+```php
+AiUsage::withoutRecording(fn () => (new HealthCheckAgent())->prompt('ping'));
+```
+
+## Execution traces
+
+Every row is linked to its trace: `trace_id` is the invocation id of the root call, and a sub-agent (or any call made inside a tool) stores the `parent_invocation_id` and `parent_tool_invocation_id` it was delegated from. This needs laravel/ai 0.11 or later; on older versions every call is its own trace. The record page shows the rows of one trace as a tree with timing bars.
+
+Turn on `AI_USAGE_TRACE=true` to also store the full execution trace on each agent row (laravel/ai 1.x): the instructions, input and output, every model step with its tokens, cost and text, and every tool call with its arguments, result and duration. The record page shows it as a waterfall like a tracing tool, and each span opens its details. Strings are truncated to `content_limit`. Traces can contain document or mail contents, so values under sensitive keys (`*_token`, `password`, `api_key`, …) are masked by `redaction`, which is on by default. Add regex patterns for values in free text (e.g. e-mail addresses) and set a `retention_days`.
+
+With `AI_USAGE_TRACE_ATTACHMENTS=true`, files attached to a prompt are copied to `trace.disk` (default `local`) under `trace.path/{date}/{invocation}/` and can be downloaded from the record page. Remote and provider files are only described, never downloaded. The folders are deleted by `model:prune` together with the rows.
+
+Failed calls get an `error_kind` (`rate_limited`, `overloaded`, `connection`, `credits`, `tool_error` or `exception`), which the record list can filter on.
+
 ## Pricing
 
 Costs are calculated when a call is recorded, using the prices (per 1M tokens) of the matching row in `ai_models`. Input, cache-read, cache-write and output tokens are each charged at their own rate. The token counts are read the same way from laravel/ai 0.x and 1.x, even though 1.x includes the cached tokens in `inputTokens`. The rates used are stored on the record. A model is matched on provider and model id, then on the id without a date or `-latest` suffix, then on its OpenRouter id. Calls to a model without a price are recorded with a cost of 0 and flagged as "without pricing".
@@ -194,7 +213,7 @@ When the spend in a period crosses a threshold, `BudgetThresholdReached` fires o
 |---|---|---|
 | `ai-usage.dashboard` | `/ai-usage` | Totals, a cost, tokens or requests chart and breakdowns by model, feature, provider and subject. |
 | `ai-usage.records.index` | `/ai-usage/records` | Filterable, sortable list with CSV export. |
-| `ai-usage.records.show` | `/ai-usage/records/{record}` | Tokens, cost, price snapshot, subject, metadata and content of one call. |
+| `ai-usage.records.show` | `/ai-usage/records/{record}` | Tokens, cost, price snapshot, subject, metadata, content and execution trace of one call. |
 | `ai-usage.models.index` | `/ai-usage/models` | The synced models with their modalities, context and prices, and a button that runs `ai-usage:sync-models`. |
 
 The pages use a standalone layout with the package's own stylesheet. To show them in your application's layout instead, set `layout` to your layout component (e.g. `layouts::app`). Then add the package views to your Tailwind sources:

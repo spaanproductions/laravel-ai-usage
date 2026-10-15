@@ -35,7 +35,23 @@
 	</div>
 
 	@if ($record->error)
-		<div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{{ $record->error }}</div>
+		<div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+			@if ($record->error_kind)
+				<span class="mr-2 rounded-md bg-rose-100 px-1.5 py-0.5 text-xs font-medium">{{ $record->error_kind->label() }}</span>
+			@endif
+			{{ $record->error }}
+		</div>
+	@endif
+
+	@if ($trace !== null)
+		@if (! $trace->root()->is($record))
+			<p class="text-sm text-slate-500">
+				Part of the trace of
+				<a href="{{ route('ai-usage.records.show', $trace->root()) }}" wire:navigate class="text-indigo-600 hover:underline">{{ $trace->root()->agent ? class_basename($trace->root()->agent) : $trace->root()->operation->label() }}</a>.
+			</p>
+		@endif
+
+		@include('ai-usage::partials.trace', ['trace' => $trace, 'record' => $record, 'currency' => $currency])
 	@endif
 
 	<div class="grid gap-6 lg:grid-cols-3">
@@ -128,6 +144,12 @@
 					<dt class="text-slate-500">Invocation</dt>
 					<dd class="text-right font-mono text-xs break-all">{{ $record->invocation_id ?? '—' }}</dd>
 				</div>
+				@if ($record->trace_id && $record->trace_id !== $record->invocation_id)
+					<div class="flex justify-between gap-4">
+						<dt class="text-slate-500">Trace</dt>
+						<dd class="text-right font-mono text-xs break-all">{{ $record->trace_id }}</dd>
+					</div>
+				@endif
 				<div class="flex justify-between gap-4">
 					<dt class="text-slate-500">Conversation</dt>
 					<dd class="text-right font-mono text-xs break-all">

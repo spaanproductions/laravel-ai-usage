@@ -24,6 +24,51 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Execution traces
+	|--------------------------------------------------------------------------
+	|
+	| Every row is linked to its trace (the root call) and parent call, so the
+	| record page shows sub-agents as a tree. With tracing on, each agent row
+	| also stores its full execution trace: the instructions, input and output,
+	| every model step (tokens, cost, text) and every tool call (arguments,
+	| result), with timings. Strings are truncated to content_limit and run
+	| through the redaction below.
+	|
+	| With attachments on, the files attached to a prompt are copied to the
+	| disk and path below (per day, deleted with the rows by the retention).
+	| Remote and provider files are only described, never downloaded.
+	|
+	*/
+
+	'trace' => [
+		'enabled' => env('AI_USAGE_TRACE', false),
+		'attachments' => env('AI_USAGE_TRACE_ATTACHMENTS', false),
+		'disk' => env('AI_USAGE_TRACE_DISK', 'local'),
+		'path' => 'ai-usage/attachments',
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| Redaction
+	|--------------------------------------------------------------------------
+	|
+	| On by default: stored content (prompt, response and trace) is masked first:
+	| values under the keys below (`*` is a wildcard) and matches of the regex
+	| patterns, given as `regex => replacement` or as a plain list of regexes.
+	|
+	*/
+
+	'redaction' => [
+		'enabled' => env('AI_USAGE_REDACTION', true),
+		'keys' => ['password', 'secret', 'api_key', 'authorization', '*_token', '*_secret'],
+		'patterns' => [
+			// '/[\w.+-]+@[\w-]+\.[\w.-]+/' => '[email]',
+		],
+		'replacement' => '[redacted]',
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Users
 	|--------------------------------------------------------------------------
 	|

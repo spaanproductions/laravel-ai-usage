@@ -30,6 +30,18 @@ final class Format
 		return $symbol . number_format($amount, $decimals);
 	}
 
+	/** A duration in milliseconds, e.g. "<1 ms", "1.4 ms", "27 ms" or "2.3 s". */
+	public static function duration(float|int|null $milliseconds): string
+	{
+		return match (true) {
+			$milliseconds === null => '—',
+			$milliseconds < 1 => '<1 ms',
+			$milliseconds < 10 => number_format($milliseconds, 1) . ' ms',
+			$milliseconds < 1000 => number_format($milliseconds) . ' ms',
+			default => number_format($milliseconds / 1000, 1) . ' s',
+		};
+	}
+
 	public static function tokens(float|int|string|null $tokens): string
 	{
 		return number_format((int) $tokens);

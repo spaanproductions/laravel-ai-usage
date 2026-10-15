@@ -3,6 +3,7 @@
 namespace SpaanProductions\LaravelAiUsage\Pricing;
 
 use Illuminate\Support\Str;
+use Illuminate\Support\Collection;
 use SpaanProductions\LaravelAiUsage\Models\AiModel;
 use SpaanProductions\LaravelAiUsage\Support\AiModelSynchronizer;
 
@@ -42,7 +43,9 @@ class CostCalculator
 	/**
 	 * The AI model of the provider with this id. Falls back to the same id without dots,
 	 * dates and "-latest" (e.g. "claude-haiku-4-5-20251001" for "claude-haiku-4-5"), and
-	 * to the OpenRouter id (e.g. "anthropic/claude-haiku-4.5").
+	 * to the OpenRouter id (e.g. "anthropic/claude-haiku-4.5"), and finally to the longest
+	 * model id this one extends with only version or build suffixes (e.g. "claude-sonnet-5-5"
+	 * for "claude-sonnet-5-5-v2"), never a model of another tier ("gpt-5" for "gpt-5-mini").
 	 */
 	public function findModel(?string $provider, ?string $model): ?AiModel
 	{
@@ -61,12 +64,22 @@ class CostCalculator
 		}
 
 		$undated = AiModelSynchronizer::normalizeId(Str::afterLast($model, '/'), stripDate: true);
+		$candidates = AiModel::query()->where('provider', $provider)->get();
 
-		return AiModel::query()
-			->where('provider', $provider)
-			->get()
-			->first(fn (AiModel $candidate): bool => AiModelSynchronizer::normalizeId($candidate->model_id, stripDate: true) === $undated)
-			?? AiModel::query()->where('openrouter_id', $model)->first();
+		return $candidates->first(fn (AiModel $candidate): bool => AiModelSynchronizer::normalizeId($candidate->model_id, stripDate: true) === $undated)
+			?? AiModel::query()->where('openrouter_id', $model)->first()
+			?? $this->prefixMatch($candidates, $undated);
+	}
+
+	/** @param Collection<int, AiModel> $candidates */
+	private function prefixMatch(Collection $candidates, string $model): ?AiModel
+	{
+		return $candidates
+			->map(fn (AiModel $candidate): array => [$candidate, AiModelSynchronizer::normalizeId($candidate->model_id, stripDate: true)])
+			->filter(fn (array $candidate): bool => str_starts_with($model, $candidate[1] . '-')
+				&& preg_match('/^(-(v?\d+[a-z]?|preview|exp|experimental|beta|alpha))+$/', substr($model, strlen($candidate[1]))) === 1)
+			->sortByDesc(fn (array $candidate): int => strlen($candidate[1]))
+			->first()[0] ?? null;
 	}
 
 	private static function rate(?float $price): ?float

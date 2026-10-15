@@ -124,6 +124,7 @@ class AiUsagePagesTest extends TestCase
 		$luna = AiUsageRecord::factory()->create(['model' => 'gpt-6-luna', 'feature' => 'link_analysis', 'total_cost' => 0.5]);
 		$haiku = AiUsageRecord::factory()->create(['model' => 'claude-haiku-5-5', 'provider' => 'anthropic', 'feature' => 'document_extraction', 'total_cost' => 2]);
 		$failed = AiUsageRecord::factory()->failed()->create(['model' => 'gpt-6-sol']);
+		$limited = AiUsageRecord::factory()->failed()->create(['model' => 'gpt-6-sol', 'error_kind' => 'rate_limited']);
 
 		$component = Livewire::actingAs($this->createAdmin())
 			->test(Records::class)
@@ -135,6 +136,9 @@ class AiUsagePagesTest extends TestCase
 			->set('status', 'failed')
 			->assertSee($this->url($failed))
 			->assertDontSee($this->url($haiku))
+			->set('errorKind', 'rate_limited')
+			->assertSee([$this->url($limited), 'Rate limited'])
+			->assertDontSee($this->url($failed))
 			->call('resetFilters')
 			->call('sortBy', 'total_cost');
 

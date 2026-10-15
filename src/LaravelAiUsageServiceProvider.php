@@ -12,9 +12,11 @@ use SpaanProductions\LaravelAiUsage\Livewire\Records;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 use SpaanProductions\LaravelAiUsage\Livewire\Dashboard;
 use SpaanProductions\LaravelAiUsage\Livewire\RecordDetail;
+use SpaanProductions\LaravelAiUsage\Support\TraceCollector;
 use SpaanProductions\LaravelAiUsage\Listeners\RecordLaravelAiUsage;
 use SpaanProductions\LaravelAiUsage\Console\Commands\RepriceUsageCommand;
 use SpaanProductions\LaravelAiUsage\Console\Commands\SyncAiModelsCommand;
+use SpaanProductions\LaravelAiUsage\Http\Controllers\AttachmentController;
 use SpaanProductions\LaravelAiUsage\Http\Controllers\StylesheetController;
 
 class LaravelAiUsageServiceProvider extends PackageServiceProvider
@@ -31,6 +33,7 @@ class LaravelAiUsageServiceProvider extends PackageServiceProvider
 	public function packageRegistered(): void
 	{
 		$this->app->singleton(AiUsage::class);
+		$this->app->singleton(TraceCollector::class);
 	}
 
 	public function packageBooted(): void
@@ -77,6 +80,7 @@ class LaravelAiUsageServiceProvider extends PackageServiceProvider
 				Route::livewire('/', Dashboard::class)->name('ai-usage.dashboard');
 				Route::livewire('/records', Records::class)->name('ai-usage.records.index');
 				Route::livewire('/records/{record}', RecordDetail::class)->name('ai-usage.records.show');
+				Route::get('/records/{record}/attachments/{index}', AttachmentController::class)->whereNumber('index')->name('ai-usage.records.attachment');
 				Route::livewire('/models', Models::class)->name('ai-usage.models.index');
 				Route::get('/assets/ai-usage.css', StylesheetController::class)->name('ai-usage.assets.css');
 			});
@@ -95,6 +99,7 @@ class LaravelAiUsageServiceProvider extends PackageServiceProvider
 		$this->publishesMigrations([
 			$migrations . '2026_10_11_000001_create_ai_usage_records_table.php' => database_path('migrations/2026_10_11_000001_create_ai_usage_records_table.php'),
 			$migrations . '2026_10_11_000002_create_ai_usage_budget_alerts_table.php' => database_path('migrations/2026_10_11_000002_create_ai_usage_budget_alerts_table.php'),
+			$migrations . '2026_10_15_000003_add_trace_columns_to_ai_usage_records_table.php' => database_path('migrations/2026_10_15_000003_add_trace_columns_to_ai_usage_records_table.php'),
 		], 'ai-usage-migrations');
 
 		// Separate, so an application that already has an ai_models table can skip it.

@@ -6,6 +6,7 @@ use Livewire\Component;
 use Livewire\Attributes\Title;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\View as ViewFactory;
+use SpaanProductions\LaravelAiUsage\Support\TraceTree;
 use SpaanProductions\LaravelAiUsage\Models\AiUsageRecord;
 
 #[ConfiguredLayout]
@@ -37,6 +38,7 @@ class RecordDetail extends Component
 		}
 
 		return ViewFactory::make('ai-usage::livewire.record', [
+			'trace' => TraceTree::for($this->record),
 			'conversation' => $conversation,
 			'subjectUrl' => $subjectUrl,
 			'currency' => $this->record->currency,

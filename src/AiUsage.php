@@ -5,7 +5,10 @@ namespace SpaanProductions\LaravelAiUsage;
 use Closure;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Model;
+use Laravel\Ai\Gateway\ParentInvocation;
 use Illuminate\Contracts\Auth\Authenticatable;
+use SpaanProductions\LaravelAiUsage\Support\Bounded;
+use SpaanProductions\LaravelAiUsage\Support\Redactor;
 use SpaanProductions\LaravelAiUsage\Budgets\BudgetGuard;
 use SpaanProductions\LaravelAiUsage\Models\AiUsageRecord;
 use SpaanProductions\LaravelAiUsage\Events\AiUsageRecorded;
@@ -29,6 +32,12 @@ class AiUsage
 
 	/** @var array<string, int> Start times (hrtime, ns) of running calls, by invocation id. */
 	private array $startedAt = [];
+
+	/** @var array<string, array{trace: string, started: int}> The trace (root invocation) of recent calls, by invocation id. */
+	private array $traces = [];
+
+	/** The depth of withoutRecording() callbacks being run. */
+	private int $paused = 0;
 
 	public function __construct(private CostCalculator $calculator, private BudgetGuard $budgets)
 	{
@@ -64,6 +73,55 @@ class AiUsage
 		return (bool) config('ai-usage.enabled', true);
 	}
 
+	/** Whether calls are recorded right now: enabled and not inside withoutRecording(). */
+	public function recording(): bool
+	{
+		return $this->paused === 0 && $this->enabled();
+	}
+
+	/**
+	 * Run the callback without recording the AI calls inside it.
+	 *
+	 * @template TReturn
+	 * @param Closure(): TReturn $callback
+	 * @return TReturn
+	 */
+	public function withoutRecording(Closure $callback): mixed
+	{
+		$this->paused++;
+
+		try {
+			return $callback();
+		} finally {
+			$this->paused--;
+		}
+	}
+
+	/**
+	 * Where a call sits in its execution trace. A sub-agent (or any call made inside a tool)
+	 * names the invocation and tool invocation it was delegated from; the trace id is the
+	 * invocation id of the root call, so every row of one run shares it. laravel/ai 0.x has
+	 * no parent ids: every call is then its own trace.
+	 *
+	 * @return array{trace_id: string, parent_invocation_id: string|null, parent_tool_invocation_id: string|null}
+	 */
+	public function lineage(string $invocationId, ?object $prompt = null): array
+	{
+		[$parent, $parentTool] = $prompt !== null && property_exists($prompt, 'parentInvocationId')
+			? [$prompt->parentInvocationId, $prompt->parentToolInvocationId ?? null]
+			: (class_exists(ParentInvocation::class) ? ParentInvocation::current() : [null, null]);
+
+		$trace = $this->traces[$invocationId]['trace']
+			?? ($parent === null ? $invocationId : ($this->traces[$parent]['trace'] ?? $parent));
+
+		if ( ! isset($this->traces[$invocationId])) {
+			$this->traces = Bounded::trim($this->traces, fn (array $entry): int => $entry['started'], self::STALE_AFTER_SECONDS, self::MAX_RUNNING);
+			$this->traces[$invocationId] = ['trace' => $trace, 'started' => hrtime(true)];
+		}
+
+		return ['trace_id' => $trace, 'parent_invocation_id' => $parent, 'parent_tool_invocation_id' => $parent === null ? null : $parentTool];
+	}
+
 	/**
 	 * Remember when a call started, to measure its latency. Calls that never complete (an
 	 * exception without an AgentFailed event, e.g. on laravel/ai 0.9) would otherwise stay in
@@ -71,16 +129,8 @@ class AiUsage
 	 */
 	public function start(string $invocationId): void
 	{
-		$now = hrtime(true);
-		$staleBefore = $now - self::STALE_AFTER_SECONDS * 1_000_000_000;
-
-		$this->startedAt = array_filter($this->startedAt, fn (int $startedAt): bool => $startedAt >= $staleBefore);
-
-		if (count($this->startedAt) >= self::MAX_RUNNING) {
-			$this->startedAt = array_slice($this->startedAt, -(self::MAX_RUNNING - 1), preserve_keys: true);
-		}
-
-		$this->startedAt[$invocationId] = $now;
+		$this->startedAt = Bounded::trim($this->startedAt, fn (int $startedAt): int => $startedAt, self::STALE_AFTER_SECONDS, self::MAX_RUNNING);
+		$this->startedAt[$invocationId] = hrtime(true);
 	}
 
 	/** The number of calls with a remembered start time. */
@@ -175,6 +225,6 @@ class AiUsage
 			return null;
 		}
 
-		return Str::limit($text, (int) config('ai-usage.content_limit', 5000));
+		return Str::limit((string) Redactor::redact($text), (int) config('ai-usage.content_limit', 5000));
 	}
 }

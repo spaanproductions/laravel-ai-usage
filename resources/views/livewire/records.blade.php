@@ -61,6 +61,13 @@
 			@endforeach
 		</select>
 
+		<select wire:model.live="errorKind" class="{{ $selectClass }}">
+			<option value="">All errors</option>
+			@foreach ($errorKinds as $option)
+				<option value="{{ $option->value }}">{{ $option->label() }}</option>
+			@endforeach
+		</select>
+
 		<input type="text" wire:model.live.debounce.400ms="userId" placeholder="User id" class="{{ $inputClass }} w-24">
 
 		<label class="inline-flex items-center gap-2 text-sm text-slate-600">
@@ -102,10 +109,13 @@
 						<tr wire:key="record-{{ $record->id }}" class="hover:bg-slate-50">
 							<td class="whitespace-nowrap px-4 py-2">
 								<a href="{{ route('ai-usage.records.show', $record) }}" wire:navigate class="text-indigo-600 hover:underline">{{ $record->created_at?->format('Y-m-d H:i:s') }}</a>
+								@if ($record->parent_invocation_id)
+									<span class="text-xs text-slate-400" title="Delegated from another call">↳</span>
+								@endif
 								<div class="text-xs text-slate-400">
 									{{ $record->operation->label() }}
 									@if ($record->isFailed())
-										· <span class="text-rose-600">{{ $record->status->label() }}</span>
+										· <span class="text-rose-600">{{ $record->error_kind?->label() ?? $record->status->label() }}</span>
 									@endif
 								</div>
 							</td>

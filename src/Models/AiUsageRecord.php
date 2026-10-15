@@ -6,10 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use SpaanProductions\LaravelAiUsage\Enums\ErrorKind;
 use SpaanProductions\LaravelAiUsage\Enums\Operation;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use SpaanProductions\LaravelAiUsage\Enums\UsageStatus;
+use SpaanProductions\LaravelAiUsage\Support\TraceAttachments;
 use SpaanProductions\LaravelAiUsage\Database\Factories\AiUsageRecordFactory;
 
 /**
@@ -19,6 +21,9 @@ use SpaanProductions\LaravelAiUsage\Database\Factories\AiUsageRecordFactory;
  * @property int $id
  * @property string|null $invocation_id
  * @property string|null $conversation_id
+ * @property string|null $trace_id
+ * @property string|null $parent_invocation_id
+ * @property string|null $parent_tool_invocation_id
  * @property Operation $operation
  * @property string|null $provider
  * @property string|null $model
@@ -30,6 +35,7 @@ use SpaanProductions\LaravelAiUsage\Database\Factories\AiUsageRecordFactory;
  * @property int|null $user_id
  * @property UsageStatus $status
  * @property string|null $error
+ * @property ErrorKind|null $error_kind
  * @property int|null $latency_ms
  * @property int $input_tokens
  * @property int $cache_read_tokens
@@ -47,6 +53,7 @@ use SpaanProductions\LaravelAiUsage\Database\Factories\AiUsageRecordFactory;
  * @property array<string, float|null>|null $prices
  * @property string|null $prompt
  * @property string|null $response
+ * @property array<string, mixed>|null $trace
  * @property array<string, mixed>|null $metadata
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
@@ -59,7 +66,9 @@ class AiUsageRecord extends Model
 {
 	/** @use HasFactory<AiUsageRecordFactory> */
 	use HasFactory;
-	use MassPrunable;
+	use MassPrunable {
+		pruneAll as protected pruneRows;
+	}
 
 	public $guarded = [];
 
@@ -79,6 +88,7 @@ class AiUsageRecord extends Model
 		return [
 			'operation' => Operation::class,
 			'status' => UsageStatus::class,
+			'error_kind' => ErrorKind::class,
 			'latency_ms' => 'integer',
 			'input_tokens' => 'integer',
 			'cache_read_tokens' => 'integer',
@@ -94,6 +104,7 @@ class AiUsageRecord extends Model
 			'pricing_missing' => 'boolean',
 			'prices' => 'array',
 			'metadata' => 'array',
+			'trace' => 'array',
 		];
 	}
 
@@ -130,6 +141,31 @@ class AiUsageRecord extends Model
 		return $days === null || $days === ''
 			? self::query()->whereRaw('1 = 0')
 			: self::query()->where('created_at', '<', now()->subDays((int) $days));
+	}
+
+	/** Prune the rows, then the attachment folders of the same days. */
+	public function pruneAll(int $chunkSize = 1000): int
+	{
+		$pruned = $this->pruneRows($chunkSize);
+		$days = config('ai-usage.retention_days');
+
+		if ($days !== null && $days !== '' && TraceAttachments::storing()) {
+			TraceAttachments::prune((int) $days);
+		}
+
+		return $pruned;
+	}
+
+	/** @param Builder<AiUsageRecord> $query */
+	public function scopeInTrace(Builder $query, string $traceId): void
+	{
+		$query->where('trace_id', $traceId);
+	}
+
+	/** Whether other rows belong to this row's trace or it has a stored execution trace. */
+	public function hasTrace(): bool
+	{
+		return ! empty($this->trace) || ($this->trace_id !== null && self::query()->inTrace($this->trace_id)->whereKeyNot($this->getKey())->exists());
 	}
 
 	public function isFailed(): bool

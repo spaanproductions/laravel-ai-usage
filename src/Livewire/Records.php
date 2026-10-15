@@ -10,6 +10,7 @@ use Livewire\Attributes\Title;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\View as ViewFactory;
+use SpaanProductions\LaravelAiUsage\Enums\ErrorKind;
 use SpaanProductions\LaravelAiUsage\Enums\Operation;
 use SpaanProductions\LaravelAiUsage\Enums\UsageStatus;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -49,6 +50,9 @@ class Records extends Component
 	#[Url]
 	public string $status = '';
 
+	#[Url(as: 'error')]
+	public string $errorKind = '';
+
 	#[Url(as: 'subject')]
 	public string $subjectType = '';
 
@@ -87,7 +91,7 @@ class Records extends Component
 
 	public function resetFilters(): void
 	{
-		$this->reset('provider', 'model', 'feature', 'operation', 'status', 'subjectType', 'userId', 'conversationId', 'pricingMissing');
+		$this->reset('provider', 'model', 'feature', 'operation', 'status', 'errorKind', 'subjectType', 'userId', 'conversationId', 'pricingMissing');
 		$this->resetPage();
 	}
 
@@ -98,7 +102,7 @@ class Records extends Component
 		return response()->streamDownload(function () use ($query): void {
 			$output = fopen('php://output', 'w');
 
-			fputcsv($output, ['id', 'date', 'operation', 'status', 'provider', 'model', 'feature', 'agent', 'subject_type', 'subject_id', 'user_id', 'input_tokens', 'cache_read_tokens', 'cache_write_tokens', 'output_tokens', 'reasoning_tokens', 'total_tokens', 'input_cost', 'cache_read_cost', 'cache_write_cost', 'output_cost', 'total_cost', 'currency', 'pricing_missing', 'latency_ms', 'invocation_id', 'conversation_id', 'error'], escape: '');
+			fputcsv($output, ['id', 'date', 'operation', 'status', 'provider', 'model', 'feature', 'agent', 'subject_type', 'subject_id', 'user_id', 'input_tokens', 'cache_read_tokens', 'cache_write_tokens', 'output_tokens', 'reasoning_tokens', 'total_tokens', 'input_cost', 'cache_read_cost', 'cache_write_cost', 'output_cost', 'total_cost', 'currency', 'pricing_missing', 'latency_ms', 'invocation_id', 'conversation_id', 'trace_id', 'parent_invocation_id', 'error', 'error_kind'], escape: '');
 
 			$query->lazyById(500)->each(function (AiUsageRecord $record) use ($output): void {
 				fputcsv($output, [
@@ -129,7 +133,10 @@ class Records extends Component
 					$record->latency_ms,
 					$record->invocation_id,
 					$record->conversation_id,
+					$record->trace_id,
+					$record->parent_invocation_id,
 					$record->error,
+					$record->error_kind?->value,
 				], escape: '');
 			});
 
@@ -159,6 +166,7 @@ class Records extends Component
 			'subjectTypes' => $options('subject_type'),
 			'operations' => Operation::cases(),
 			'statuses' => UsageStatus::cases(),
+			'errorKinds' => ErrorKind::cases(),
 			'currency' => (string) config('ai-usage.currency', 'USD'),
 		]);
 	}
@@ -180,6 +188,7 @@ class Records extends Component
 			'feature' => $this->feature,
 			'operation' => $this->operation,
 			'status' => $this->status,
+			'error_kind' => $this->errorKind,
 			'subject_type' => $this->subjectType,
 			'user_id' => $this->userId,
 			'conversation_id' => $this->conversationId,

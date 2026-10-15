@@ -35,6 +35,8 @@ src/
   Livewire/{Dashboard,Records,RecordDetail,Models} + ConfiguredLayout
   Models/{AiModel,AiUsageRecord,AiUsageBudgetAlert}
   Support/{AiModelSynchronizer,AiProviders}  ai-usage:sync-models (OpenRouter prices)
+  Support/{TraceCollector,TraceAttachments,TraceTree}  execution traces (collect, files, waterfall rows)
+  Support/{Redactor,ErrorClassifier,Bounded}          redaction, error kinds, bounded per-call state
 database/{migrations,factories,seeders}/
 resources/views/   layout + partials + livewire pages;  resources/boost/skills/  Boost skill
 tests/             Testbench TestCase + Fixtures (User, Document, SummaryAgent, PlainAgent)
@@ -74,14 +76,34 @@ Keep these unless the reason no longer holds. Each was chosen on purpose.
   exceptions. Tests guard this.
 - **Recording is synchronous.** One insert per call; no queue mode.
 - **Prompt and response text are not stored** unless `store_content` is on (then truncated to
-  `content_limit`). Usage rows must not leak document or mail contents by default.
+  `content_limit`) or `trace.enabled` is on. Usage rows must not leak document or mail contents by
+  default.
 - **Attribution order:** a scoped `AiUsage::context()` (nested, inner values win) > the agent's
   `ProvidesAiUsageContext` > fallbacks (feature = agent class in snake_case, user = `auth()->user()`).
   The subject is a morph; `HasAiUsage` gives subject models the inverse relation.
 - **A failover row does not stop the latency timer:** the invocation continues on the next provider,
   so its final row keeps the full latency. `AgentFailed` (0.11+) records a failed row.
 - **Start times are bounded:** dropped after `STALE_AFTER_SECONDS` (1 h) and capped at `MAX_RUNNING`
-  (1,000), so long-running Horizon workers do not leak memory for calls that never complete.
+  (1,000), so long-running Horizon workers do not leak memory for calls that never complete. The trace
+  map and `TraceCollector` buffers use the same bounds (`Support\Bounded`).
+
+### Execution traces (inspired by astrophp/trail, 2026-10)
+
+- **Tree links are always on, the full trace is opt-in.** `trace_id` / `parent_invocation_id` /
+  `parent_tool_invocation_id` cost nothing and leak nothing. `trace.enabled` stores everything when on
+  (instructions, input, output, step text, tool arguments and results), with no separate content flag,
+  by request; `redaction` masks sensitive values and is **on by default** (keys only; regex patterns are
+  empty because they can hit normal text). Attachments are a second opt-in.
+- **The trace is JSON on the agent's own row, not a spans table.** One insert per call stays true; a
+  sub-agent's steps live on its own row and the tree joins rows via `parent_tool_invocation_id` = the
+  tool span id. Span offsets are relative to the row's own start, so a child row is placed at its tool
+  call's offset.
+- **Step costs are informational:** priced per step at record time; the row totals are unchanged.
+- **Remote attachments are never downloaded** (not even `mimeType()`, which fetches them). Stored
+  files live under `{path}/{Y-m-d}/` so `pruneAll` (aliased `MassPrunable`) can delete whole days.
+- **The waterfall uses native `<details>` per span**, no JS, like the chart.
+- **Not taken from Trail:** live "running" rows, sampling, bookmarks, trace comparison, a ⌘K search,
+  conversations/agents pages, price editing, Boost MCP tools.
 
 ### Tokens and cost
 

@@ -18,6 +18,7 @@ use Laravel\Ai\Responses\AgentResponse;
 use Laravel\Ai\Responses\Data\TextUsage;
 use SpaanProductions\LaravelAiUsage\Models\AiModel;
 use SpaanProductions\LaravelAiUsage\Tests\TestCase;
+use SpaanProductions\LaravelAiUsage\Enums\ErrorKind;
 use SpaanProductions\LaravelAiUsage\Enums\Operation;
 use SpaanProductions\LaravelAiUsage\Facades\AiUsage;
 use Laravel\Ai\Exceptions\ProviderOverloadedException;
@@ -100,6 +101,7 @@ class RecordsLaravelAiUsageTest extends TestCase
 		$this->assertSame(Operation::Failover, $record->operation);
 		$this->assertSame(UsageStatus::Failed, $record->status);
 		$this->assertSame('AI provider [openai] is overloaded.', $record->error);
+		$this->assertSame(ErrorKind::Overloaded, $record->error_kind);
 		$this->assertSame('summaries', $record->feature);
 	}
 
@@ -115,6 +117,7 @@ class RecordsLaravelAiUsageTest extends TestCase
 		$this->assertSame(Operation::Chat, $record->operation);
 		$this->assertSame(UsageStatus::Failed, $record->status);
 		$this->assertSame('The request timed out.', $record->error);
+		$this->assertSame(ErrorKind::Connection, $record->error_kind);
 		$this->assertSame('summaries', $record->feature);
 		$this->assertSame('gpt-6-luna', $record->model);
 	}
