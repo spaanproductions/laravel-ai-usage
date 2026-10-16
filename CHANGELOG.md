@@ -2,7 +2,7 @@
 
 All notable changes to `spaanproductions/laravel-ai-usage` are documented in this file.
 
-## Unreleased
+## v0.1.5 - 2026-10-17
 
 - Applications that use immutable dates (`Date::use(CarbonImmutable::class)`, as the Laravel starter kits do) no longer get a `TypeError` on the dashboard and record list, and their budget alerts fire again. Dates are typed as `CarbonInterface`, and the dashboard chart no longer relies on mutating its date cursor.
 
