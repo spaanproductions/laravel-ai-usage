@@ -125,7 +125,8 @@ Keep these unless the reason no longer holds. Each was chosen on purpose.
 - **Migrations are publish-only (Laravel's advice for packages), never auto-loaded.** Two tags:
   `ai-usage-migrations` (usage tables) and `ai-usage-models-migrations` (`ai_models`, separate so an app
   that already has the table can skip it). The files carry a timestamp prefix so `vendor:publish` can
-  re-stamp them.
+  re-stamp them. A migration the app already published (any date, same name) is the publish target, so
+  republishing after an update skips it and only adds new migrations (`PublishMigrationsTest`).
 - **Budget alerts fire once per budget, period and threshold**, enforced by a unique index on
   `ai_usage_budget_alerts` and `insertOrIgnore`; event `BudgetThresholdReached` plus optional mail.
 - **Retention via `MassPrunable`** and `retention_days` (null keeps everything); the host schedules

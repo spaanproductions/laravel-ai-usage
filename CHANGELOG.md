@@ -2,13 +2,17 @@
 
 All notable changes to `spaanproductions/laravel-ai-usage` are documented in this file.
 
+## Unreleased
+
+- Publishing the migrations again after an update only adds the new migrations. Before, `vendor:publish --tag=ai-usage-migrations` copied every migration again under a new date, so `migrate` failed on tables that already exist. If you followed the v0.1.4 upgrade note, delete the duplicated `create_ai_usage_records_table` and `create_ai_usage_budget_alerts_table` migrations that are not yet migrated.
+
 ## v0.1.5 - 2026-10-17
 
 - Applications that use immutable dates (`Date::use(CarbonImmutable::class)`, as the Laravel starter kits do) no longer get a `TypeError` on the dashboard and record list, and their budget alerts fire again. Dates are typed as `CarbonInterface`, and the dashboard chart no longer relies on mutating its date cursor.
 
 ## v0.1.4 - 2026-10-15
 
-Publish the `ai-usage-migrations` again and migrate: a new migration adds the trace columns.
+Publish the `ai-usage-migrations` again and migrate: a new migration adds the trace columns. Update to v0.1.6 first, or delete the duplicated older migrations this publish adds (see v0.1.6).
 
 - Execution traces. Every row links to its trace and parent call (`trace_id`, `parent_invocation_id`, `parent_tool_invocation_id`), so sub-agents and calls made inside tools form a tree on the record page.
 - `trace.enabled` (`AI_USAGE_TRACE`, off by default) stores the full trace of agent calls on laravel/ai 1.x: instructions, input, output, every model step (tokens, cost, text) and every tool call (arguments, result), with timings. The record page shows it as a waterfall with expandable spans.

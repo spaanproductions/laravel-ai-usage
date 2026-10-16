@@ -94,18 +94,16 @@ class LaravelAiUsageServiceProvider extends PackageServiceProvider
 
 		// The migrations are not auto-loaded: publish them so the application owns them
 		// (vendor:publish stamps them with the current date).
-		$migrations = __DIR__ . '/../database/migrations/';
-
-		$this->publishesMigrations([
-			$migrations . '2026_10_11_000001_create_ai_usage_records_table.php' => database_path('migrations/2026_10_11_000001_create_ai_usage_records_table.php'),
-			$migrations . '2026_10_11_000002_create_ai_usage_budget_alerts_table.php' => database_path('migrations/2026_10_11_000002_create_ai_usage_budget_alerts_table.php'),
-			$migrations . '2026_10_15_000003_add_trace_columns_to_ai_usage_records_table.php' => database_path('migrations/2026_10_15_000003_add_trace_columns_to_ai_usage_records_table.php'),
-		], 'ai-usage-migrations');
+		$this->publishesMigrations(self::migrations([
+			'2026_10_11_000001_create_ai_usage_records_table.php',
+			'2026_10_11_000002_create_ai_usage_budget_alerts_table.php',
+			'2026_10_15_000003_add_trace_columns_to_ai_usage_records_table.php',
+		]), 'ai-usage-migrations');
 
 		// Separate, so an application that already has an ai_models table can skip it.
-		$this->publishesMigrations([
-			$migrations . '2026_10_11_000000_create_ai_models_table.php' => database_path('migrations/2026_10_11_000000_create_ai_models_table.php'),
-		], 'ai-usage-models-migrations');
+		$this->publishesMigrations(self::migrations([
+			'2026_10_11_000000_create_ai_models_table.php',
+		]), 'ai-usage-models-migrations');
 
 		$this->publishes([
 			__DIR__ . '/../dist/ai-usage.css' => public_path('vendor/ai-usage/ai-usage.css'),
@@ -114,5 +112,28 @@ class LaravelAiUsageServiceProvider extends PackageServiceProvider
 		$this->publishes([
 			__DIR__ . '/../resources/views' => resource_path('views/vendor/ai-usage'),
 		], 'ai-usage-views');
+	}
+
+	/**
+	 * The publish paths of the migrations. A migration the application already published (under
+	 * its own date) targets that file, so vendor:publish skips it and an update only adds the
+	 * new migrations.
+	 *
+	 * @param array<int, string> $files
+	 * @return array<string, string>
+	 */
+	private static function migrations(array $files): array
+	{
+		$paths = [];
+
+		foreach ($files as $file) {
+			$name = (string) preg_replace('/^\d{4}_\d{2}_\d{2}_\d{6}_/', '', $file);
+			$published = collect(glob(database_path('migrations/*_' . $name)) ?: [])
+				->first(fn (string $path): bool => preg_match('/^\d{4}_\d{2}_\d{2}_\d{6}_' . preg_quote($name, '/') . '$/', basename($path)) === 1);
+
+			$paths[__DIR__ . '/../database/migrations/' . $file] = $published ?? database_path('migrations/' . $file);
+		}
+
+		return $paths;
 	}
 }

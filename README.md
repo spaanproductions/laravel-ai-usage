@@ -35,13 +35,15 @@ their own compiled CSS, so they work without your application's Tailwind build.
 composer require spaanproductions/laravel-ai-usage
 ```
 
-Publish the migrations and run them (after an update, publish `ai-usage-migrations` again for new migrations). The `ai_models` table (the price list) has its own tag, so skip it if your application already has that table:
+Publish the migrations and run them. The `ai_models` table (the price list) has its own tag, so skip it if your application already has that table:
 
 ```bash
 php artisan vendor:publish --tag=ai-usage-migrations
 php artisan vendor:publish --tag=ai-usage-models-migrations
 php artisan migrate
 ```
+
+After an update, run the same `vendor:publish` commands and `migrate` again. Migrations you already published are skipped, so only new ones are added.
 
 If one of the table names (`ai_models`, `ai_usage_records`, `ai_usage_budget_alerts`) is already taken in your application, publish the config (`php artisan vendor:publish --tag=ai-usage-config`) and change `tables` before running the migrations. The migrations and the models both read these names:
 
