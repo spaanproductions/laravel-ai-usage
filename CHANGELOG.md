@@ -2,7 +2,7 @@
 
 All notable changes to `spaanproductions/laravel-ai-usage` are documented in this file.
 
-## Unreleased
+## v0.1.6 - 2026-10-17
 
 - Publishing the migrations again after an update only adds the new migrations. Before, `vendor:publish --tag=ai-usage-migrations` copied every migration again under a new date, so `migrate` failed on tables that already exist. If you followed the v0.1.4 upgrade note, delete the duplicated `create_ai_usage_records_table` and `create_ai_usage_budget_alerts_table` migrations that are not yet migrated.
 
