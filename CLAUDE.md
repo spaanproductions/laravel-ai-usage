@@ -154,6 +154,9 @@ Keep these unless the reason no longer holds. Each was chosen on purpose.
   one-year `immutable` cache, so without the hash browsers keep an old build after an update.
 - **Dropdowns use a custom chevron** (`appearance: none` + padding) because the native arrow sat
   against the edge.
+- **Dates are typed `CarbonInterface`, never `Illuminate\Support\Carbon`,** and never mutated in place
+  (reassign `$date = $date->copy()->addDay()`): hosts may use `Date::use(CarbonImmutable::class)`, as
+  the starter kits do. `ImmutableDatesTest` guards this.
 - **Views render with `ViewFactory::make('ai-usage::…')`**; larastan resolves the namespaced views
   through `testbench.yaml`, which registers the providers. Keep that file.
 

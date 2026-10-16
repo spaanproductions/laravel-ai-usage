@@ -2,7 +2,7 @@
 
 namespace SpaanProductions\LaravelAiUsage\Events;
 
-use Illuminate\Support\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Foundation\Events\Dispatchable;
 
 /**
@@ -16,7 +16,7 @@ class BudgetThresholdReached
 	public function __construct(
 		public string $budget,
 		public string $period,
-		public Carbon $periodStart,
+		public CarbonInterface $periodStart,
 		public float $threshold,
 		public float $limit,
 		public float $spent,

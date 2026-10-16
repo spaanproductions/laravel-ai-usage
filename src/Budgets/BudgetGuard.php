@@ -2,7 +2,7 @@
 
 namespace SpaanProductions\LaravelAiUsage\Budgets;
 
-use Illuminate\Support\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Notification;
 use SpaanProductions\LaravelAiUsage\Models\AiUsageRecord;
 use SpaanProductions\LaravelAiUsage\Models\AiUsageBudgetAlert;
@@ -84,7 +84,7 @@ class BudgetGuard
 		}
 	}
 
-	public static function periodStart(string $period): Carbon
+	public static function periodStart(string $period): CarbonInterface
 	{
 		return match ($period) {
 			'day' => now()->startOfDay(),

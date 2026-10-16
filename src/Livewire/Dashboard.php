@@ -3,6 +3,7 @@
 namespace SpaanProductions\LaravelAiUsage\Livewire;
 
 use Livewire\Component;
+use Carbon\CarbonInterface;
 use Livewire\Attributes\Url;
 use Illuminate\Support\Carbon;
 use Livewire\Attributes\Title;
@@ -62,9 +63,9 @@ class Dashboard extends Component
 	 * The chosen metric per hour for periods up to two days, per month for periods longer than three
 	 * months and per day otherwise.
 	 *
-	 * @return array{granularity: string, metric: string, max: float, bars: Collection<int, array{date: Carbon, cost: float, requests: int, tokens: int}>}
+	 * @return array{granularity: string, metric: string, max: float, bars: Collection<int, array{date: CarbonInterface, cost: float, requests: int, tokens: int}>}
 	 */
-	private function chart(Carbon $from, Carbon $until): array
+	private function chart(CarbonInterface $from, CarbonInterface $until): array
 	{
 		$metric = $this->metric();
 		$granularity = match (true) {
@@ -101,10 +102,11 @@ class Dashboard extends Component
 				'tokens' => (int) $rows->sum('tokens'),
 			]);
 
-			match ($granularity) {
-				'hour' => $cursor->addHour(),
-				'month' => $cursor->addMonthNoOverflow(),
-				default => $cursor->addDay(),
+			// Reassigned, so the loop also advances when the application uses immutable dates.
+			$cursor = match ($granularity) {
+				'hour' => $cursor->copy()->addHour(),
+				'month' => $cursor->copy()->addMonthNoOverflow(),
+				default => $cursor->copy()->addDay(),
 			};
 		}
 
@@ -132,7 +134,7 @@ class Dashboard extends Component
 	 * @param array<int, string> $extra
 	 * @return Collection<int, \stdClass>
 	 */
-	private function breakdown(Carbon $from, Carbon $until, string $column, array $extra = []): Collection
+	private function breakdown(CarbonInterface $from, CarbonInterface $until, string $column, array $extra = []): Collection
 	{
 		return UsageFilters::query($from, $until)
 			->select([$column, ...$extra])

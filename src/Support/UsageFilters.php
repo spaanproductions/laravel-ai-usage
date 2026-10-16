@@ -2,6 +2,7 @@
 
 namespace SpaanProductions\LaravelAiUsage\Support;
 
+use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use SpaanProductions\LaravelAiUsage\Models\AiUsageRecord;
@@ -27,7 +28,7 @@ final class UsageFilters
 	/** @var array<int, string> The filters that match a column exactly. */
 	public const COLUMNS = ['provider', 'model', 'feature', 'operation', 'status', 'error_kind', 'subject_type', 'user_id', 'conversation_id'];
 
-	/** @return array{0: Carbon, 1: Carbon} */
+	/** @return array{0: CarbonInterface, 1: CarbonInterface} */
 	public static function range(string $range, ?string $from = null, ?string $to = null): array
 	{
 		return match ($range) {
@@ -50,7 +51,7 @@ final class UsageFilters
 	 * @param array<string, mixed> $filters
 	 * @return Builder<AiUsageRecord>
 	 */
-	public static function query(Carbon $from, Carbon $until, array $filters = []): Builder
+	public static function query(CarbonInterface $from, CarbonInterface $until, array $filters = []): Builder
 	{
 		$query = AiUsageRecord::query()->whereBetween('created_at', [$from, $until]);
 
@@ -73,7 +74,7 @@ final class UsageFilters
 		return $query;
 	}
 
-	private static function date(?string $date): ?Carbon
+	private static function date(?string $date): ?CarbonInterface
 	{
 		if (blank($date)) {
 			return null;

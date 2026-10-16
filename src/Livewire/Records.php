@@ -3,9 +3,9 @@
 namespace SpaanProductions\LaravelAiUsage\Livewire;
 
 use Livewire\Component;
+use Carbon\CarbonInterface;
 use Livewire\Attributes\Url;
 use Livewire\WithPagination;
-use Illuminate\Support\Carbon;
 use Livewire\Attributes\Title;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -171,7 +171,7 @@ class Records extends Component
 		]);
 	}
 
-	/** @return array{0: Carbon, 1: Carbon} */
+	/** @return array{0: CarbonInterface, 1: CarbonInterface} */
 	private function period(): array
 	{
 		return UsageFilters::range($this->range, $this->from, $this->to);
