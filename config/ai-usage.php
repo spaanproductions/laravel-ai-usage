@@ -35,7 +35,7 @@ return [
 	| through the redaction below.
 	|
 	| With attachments on, the files attached to a prompt are copied to the
-	| disk and path below (per day, deleted with the rows by the retention).
+	| disk and path below (per day, deleted by the retention settings below).
 	| Remote and provider files are only described, never downloaded.
 	|
 	*/
@@ -116,9 +116,20 @@ return [
 	| Rows older than this many days are deleted by `php artisan model:prune`.
 	| Null keeps every row.
 	|
+	| The same command can clear parts of rows sooner while keeping the rows
+	| (tokens and cost): the prompt and response text, the execution trace or
+	| only the attachment files. Null keeps them as long as the row. Clearing
+	| a trace also deletes its attachments.
+	|
 	*/
 
 	'retention_days' => env('AI_USAGE_RETENTION_DAYS'),
+
+	'content_retention_days' => env('AI_USAGE_CONTENT_RETENTION_DAYS'),
+
+	'trace_retention_days' => env('AI_USAGE_TRACE_RETENTION_DAYS'),
+
+	'attachment_retention_days' => env('AI_USAGE_ATTACHMENT_RETENTION_DAYS'),
 
 	/*
 	|--------------------------------------------------------------------------

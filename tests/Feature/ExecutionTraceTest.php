@@ -155,6 +155,58 @@ class ExecutionTraceTest extends TestCase
 		$this->assertSame(0, AiUsageRecord::query()->count());
 	}
 
+	public function test_attachments_can_be_pruned_while_the_row_and_trace_are_kept(): void
+	{
+		Storage::fake('local');
+		config(['ai-usage.trace.enabled' => true, 'ai-usage.trace.attachments' => true, 'ai-usage.attachment_retention_days' => 30]);
+		PlainAgent::fake(['A cat.']);
+
+		(new PlainAgent)->prompt('What is this?', [
+			(new Base64Image(base64_encode('png-bytes'), 'image/png'))->as('cat.png'),
+		], provider: 'openai', model: 'gpt-6-luna');
+
+		$record = AiUsageRecord::query()->sole();
+		$path = $record->trace['attachments'][0]['path'];
+		$link = route('ai-usage.records.attachment', [$record, 0]);
+
+		$this->actingAs($this->createAdmin())
+			->get(route('ai-usage.records.show', $record))
+			->assertSee($link, false);
+
+		$this->travel(31)->days();
+		$record->pruneAll();
+
+		Storage::disk('local')->assertMissing($path);
+		$this->assertNotNull($record->fresh()?->trace);
+
+		$this->get(route('ai-usage.records.show', $record))
+			->assertOk()
+			->assertSee('cat.png')
+			->assertSee('(deleted)')
+			->assertDontSee($link, false);
+	}
+
+	public function test_a_trace_retention_also_deletes_the_attachments(): void
+	{
+		Storage::fake('local');
+		config(['ai-usage.trace.enabled' => true, 'ai-usage.trace.attachments' => true, 'ai-usage.trace_retention_days' => 30]);
+		PlainAgent::fake(['A cat.']);
+
+		(new PlainAgent)->prompt('What is this?', [
+			(new Base64Image(base64_encode('png-bytes'), 'image/png'))->as('cat.png'),
+		], provider: 'openai', model: 'gpt-6-luna');
+
+		$record = AiUsageRecord::query()->sole();
+		$path = $record->trace['attachments'][0]['path'];
+
+		$this->travel(31)->days();
+		$record->pruneAll();
+
+		Storage::disk('local')->assertMissing($path);
+		$this->assertNull($record->fresh()?->trace);
+		$this->assertModelExists($record);
+	}
+
 	public function test_the_record_page_shows_the_execution_trace(): void
 	{
 		config(['ai-usage.trace.enabled' => true]);

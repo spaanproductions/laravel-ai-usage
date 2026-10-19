@@ -130,7 +130,10 @@ Keep these unless the reason no longer holds. Each was chosen on purpose.
 - **Budget alerts fire once per budget, period and threshold**, enforced by a unique index on
   `ai_usage_budget_alerts` and `insertOrIgnore`; event `BudgetThresholdReached` plus optional mail.
 - **Retention via `MassPrunable`** and `retention_days` (null keeps everything); the host schedules
-  `model:prune`.
+  `model:prune`. `pruneAll` also clears parts of kept rows on separate settings, by request:
+  `content_retention_days` (prompt/response), `trace_retention_days` (trace) and
+  `attachment_retention_days` (files). Attachments use the shortest of the three retentions, since a
+  cleared trace or deleted row no longer links to them; the trace view hides links to pruned files.
 
 ### Pages
 

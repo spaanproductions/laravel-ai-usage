@@ -71,7 +71,7 @@ Gate::define('viewAiUsage', fn ($user): bool => $user->isAdmin());
 
 The dashboard is now available at `/ai-usage`.
 
-Schedule the price sync and, if you configure a retention period, the pruning, in `routes/console.php`:
+Schedule the price sync and, if you configure a retention period (rows, content, traces or attachments), the pruning, in `routes/console.php`:
 
 ```php
 use Illuminate\Support\Facades\Schedule;
@@ -98,6 +98,9 @@ php artisan vendor:publish --tag=ai-usage-config
 | `user_model` | `App\Models\User` | The model `user_id` points to. |
 | `currency` | `USD` | The currency of the prices (OpenRouter prices are USD). |
 | `retention_days` | `null` | Rows older than this are deleted by `model:prune`. `null` keeps everything. |
+| `content_retention_days` | `null` | `model:prune` clears the stored prompt and response of older rows, keeping the rows (`AI_USAGE_CONTENT_RETENTION_DAYS`). |
+| `trace_retention_days` | `null` | `model:prune` clears the execution trace of older rows, and deletes their attachments (`AI_USAGE_TRACE_RETENTION_DAYS`). |
+| `attachment_retention_days` | `null` | `model:prune` deletes only the stored attachment files of older rows (`AI_USAGE_ATTACHMENT_RETENTION_DAYS`). |
 | `budgets` | `[]` | See [Budgets](#budgets). |
 | `routes.enabled` | `true` | Register the pages. |
 | `routes.prefix` | `ai-usage` | URL prefix of the pages. |
@@ -178,6 +181,8 @@ Every row is linked to its trace: `trace_id` is the invocation id of the root ca
 Turn on `AI_USAGE_TRACE=true` to also store the full execution trace on each agent row (laravel/ai 1.x): the instructions, input and output, every model step with its tokens, cost and text, and every tool call with its arguments, result and duration. The record page shows it as a waterfall like a tracing tool, and each span opens its details. Strings are truncated to `content_limit`. Traces can contain document or mail contents, so values under sensitive keys (`*_token`, `password`, `api_key`, …) are masked by `redaction`, which is on by default. Add regex patterns for values in free text (e.g. e-mail addresses) and set a `retention_days`.
 
 With `AI_USAGE_TRACE_ATTACHMENTS=true`, files attached to a prompt are copied to `trace.disk` (default `local`) under `trace.path/{date}/{invocation}/` and can be downloaded from the record page. Remote and provider files are only described, never downloaded. The folders are deleted by `model:prune` together with the rows.
+
+To keep the rows (tokens and cost) longer than their traces, set `trace_retention_days`: `model:prune` then clears the trace of older rows and deletes their attachments. `attachment_retention_days` deletes only the attachment files, and `content_retention_days` clears the stored prompt and response. Attachments are kept for the shortest of the row, trace and attachment retention.
 
 Failed calls get an `error_kind` (`rate_limited`, `overloaded`, `connection`, `credits`, `tool_error` or `exception`), which the record list can filter on.
 

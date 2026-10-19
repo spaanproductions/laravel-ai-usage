@@ -1,5 +1,6 @@
 @php
 	use SpaanProductions\LaravelAiUsage\Support\Format;
+	use SpaanProductions\LaravelAiUsage\Support\TraceAttachments;
 
 	// The execution trace as a waterfall: server-rendered bars, no JS. Each row is a native
 	// <details> element that opens its evidence (input, output, arguments, result).
@@ -118,8 +119,10 @@
 								<ul class="space-y-1 text-xs">
 									@foreach ($row['attachments'] as $index => $attachment)
 										<li class="flex flex-wrap gap-2">
-											@if (isset($attachment['path']))
+											@if (isset($attachment['path']) && ! TraceAttachments::pruned($attachment['path']))
 												<a href="{{ route('ai-usage.records.attachment', [$row['record'], $index]) }}" class="text-indigo-600 hover:underline">{{ $attachment['name'] ?? basename($attachment['path']) }}</a>
+											@elseif (isset($attachment['path']))
+												<span class="text-slate-700">{{ $attachment['name'] ?? basename($attachment['path']) }} <span class="text-slate-400">(deleted)</span></span>
 											@elseif (isset($attachment['url']))
 												<span class="break-all text-slate-700">{{ $attachment['name'] ?? $attachment['url'] }}</span>
 											@else

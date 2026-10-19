@@ -136,24 +136,58 @@ class AiUsageRecord extends Model
 	/** @return Builder<AiUsageRecord> */
 	public function prunable(): Builder
 	{
-		$days = config('ai-usage.retention_days');
+		$days = self::retentionDays('retention_days');
 
-		return $days === null || $days === ''
+		return $days === null
 			? self::query()->whereRaw('1 = 0')
-			: self::query()->where('created_at', '<', now()->subDays((int) $days));
+			: self::query()->where('created_at', '<', now()->subDays($days));
 	}
 
-	/** Prune the rows, then the attachment folders of the same days. */
+	/**
+	 * Prune the rows, clear the content and traces of older rows that are kept, then delete
+	 * the attachment folders. Returns the number of deleted rows.
+	 */
 	public function pruneAll(int $chunkSize = 1000): int
 	{
 		$pruned = $this->pruneRows($chunkSize);
-		$days = config('ai-usage.retention_days');
 
-		if ($days !== null && $days !== '' && TraceAttachments::storing()) {
-			TraceAttachments::prune((int) $days);
+		if (($days = self::retentionDays('content_retention_days')) !== null) {
+			$this->clearColumns(['prompt', 'response'], $days, $chunkSize);
+		}
+
+		if (($days = self::retentionDays('trace_retention_days')) !== null) {
+			$this->clearColumns(['trace'], $days, $chunkSize);
+		}
+
+		if (TraceAttachments::storing() && ($days = TraceAttachments::retentionDays()) !== null) {
+			TraceAttachments::prune($days);
 		}
 
 		return $pruned;
+	}
+
+	/** A retention setting in days, null when it is not set. */
+	public static function retentionDays(string $key): ?int
+	{
+		$days = config("ai-usage.{$key}");
+
+		return $days === null || $days === '' ? null : (int) $days;
+	}
+
+	/** @param list<string> $columns */
+	private function clearColumns(array $columns, int $days, int $chunkSize): void
+	{
+		self::query()
+			->select($this->getKeyName())
+			->where('created_at', '<', now()->subDays($days))
+			->where(function (Builder $query) use ($columns) {
+				foreach ($columns as $column) {
+					$query->orWhereNotNull($column);
+				}
+			})
+			->chunkById($chunkSize, function ($records) use ($columns) {
+				self::query()->whereKey($records->modelKeys())->update(array_fill_keys($columns, null));
+			});
 	}
 
 	/** @param Builder<AiUsageRecord> $query */

@@ -2,6 +2,11 @@
 
 All notable changes to `spaanproductions/laravel-ai-usage` are documented in this file.
 
+## Unreleased
+
+- Separate retention for parts of a row, so the rows (tokens and cost) can be kept longer. `model:prune` now also clears the prompt and response with `content_retention_days`, the execution trace (and its attachments) with `trace_retention_days`, and only the attachment files with `attachment_retention_days`. All are off by default.
+- The record page no longer links to attachments the retention has deleted.
+
 ## v0.1.6 - 2026-10-17
 
 - Publishing the migrations again after an update only adds the new migrations. Before, `vendor:publish --tag=ai-usage-migrations` copied every migration again under a new date, so `migrate` failed on tables that already exist. If you followed the v0.1.4 upgrade note, delete the duplicated `create_ai_usage_records_table` and `create_ai_usage_budget_alerts_table` migrations that are not yet migrated.

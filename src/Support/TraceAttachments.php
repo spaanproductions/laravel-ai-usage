@@ -8,6 +8,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Ai\Contracts\Files\StorableFile;
 use Laravel\Ai\Files\Concerns\HasRemoteContent;
+use SpaanProductions\LaravelAiUsage\Models\AiUsageRecord;
 
 /**
  * Describes the attachments of an agent prompt for its trace and, when
@@ -60,6 +61,31 @@ class TraceAttachments
 	public static function root(): string
 	{
 		return trim((string) config('ai-usage.trace.path', 'ai-usage/attachments'), '/');
+	}
+
+	/**
+	 * Days the files are kept: the shortest of the attachment, trace and row retention, as a
+	 * cleared trace or a deleted row no longer links to its files. Null keeps them.
+	 */
+	public static function retentionDays(): ?int
+	{
+		$days = array_filter([
+			AiUsageRecord::retentionDays('attachment_retention_days'),
+			AiUsageRecord::retentionDays('trace_retention_days'),
+			AiUsageRecord::retentionDays('retention_days'),
+		], fn (?int $days): bool => $days !== null);
+
+		return $days === [] ? null : min($days);
+	}
+
+	/** Whether the file at this path belongs to a day the retention has deleted. */
+	public static function pruned(string $path): bool
+	{
+		$days = self::retentionDays();
+
+		return $days !== null
+			&& preg_match('#^' . preg_quote(self::root(), '#') . '/(\d{4}-\d{2}-\d{2})/#', $path, $match) === 1
+			&& $match[1] < now()->subDays($days)->format('Y-m-d');
 	}
 
 	/** Delete the attachment folders of days older than the retention period. */

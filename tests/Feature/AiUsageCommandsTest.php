@@ -55,4 +55,34 @@ class AiUsageCommandsTest extends TestCase
 		$this->assertModelMissing($old);
 		$this->assertModelExists($recent);
 	}
+
+	public function test_prune_clears_traces_older_than_the_trace_retention(): void
+	{
+		$old = AiUsageRecord::factory()->create(['created_at' => now()->subDays(40), 'trace' => ['steps' => []], 'prompt' => 'Hi', 'trace_id' => 'trace-1']);
+		$recent = AiUsageRecord::factory()->create(['created_at' => now()->subDays(5), 'trace' => ['steps' => []]]);
+
+		config(['ai-usage.trace_retention_days' => 30]);
+		$this->artisan('model:prune', ['--model' => [AiUsageRecord::class]])->assertSuccessful();
+
+		$old->refresh();
+		$this->assertNull($old->trace);
+		$this->assertSame('Hi', $old->prompt);
+		$this->assertSame('trace-1', $old->trace_id);
+		$this->assertNotNull($recent->fresh()?->trace);
+	}
+
+	public function test_prune_clears_content_older_than_the_content_retention(): void
+	{
+		$old = AiUsageRecord::factory()->create(['created_at' => now()->subDays(40), 'prompt' => 'Hi', 'response' => 'Hello', 'trace' => ['steps' => []]]);
+		$recent = AiUsageRecord::factory()->create(['created_at' => now()->subDays(5), 'prompt' => 'Hi', 'response' => 'Hello']);
+
+		config(['ai-usage.content_retention_days' => 30]);
+		$this->artisan('model:prune', ['--model' => [AiUsageRecord::class]])->assertSuccessful();
+
+		$old->refresh();
+		$this->assertNull($old->prompt);
+		$this->assertNull($old->response);
+		$this->assertNotNull($old->trace);
+		$this->assertSame('Hello', $recent->fresh()?->response);
+	}
 }

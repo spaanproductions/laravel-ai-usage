@@ -123,7 +123,7 @@ AiUsageRecord::query()->whereMorphedTo('subject', $mail)->sum('total_cost');
 
 - `config('ai-usage.budgets')` has entries of the form `name => ['period' => 'day'|'week'|'month', 'limit' => 50, 'thresholds' => [0.8, 1.0], 'feature' => null, 'mail' => ['…']]`. Each threshold fires `BudgetThresholdReached` once per period and mails the addresses.
 - `AiUsageRecorded` fires after every saved row. Listen to it instead of to the laravel/ai events.
-- `retention_days` together with `php artisan model:prune --model="SpaanProductions\LaravelAiUsage\Models\AiUsageRecord"` deletes old rows.
+- `retention_days` together with `php artisan model:prune --model="SpaanProductions\LaravelAiUsage\Models\AiUsageRecord"` deletes old rows. The same command clears parts of rows it keeps: `content_retention_days` (prompt and response), `trace_retention_days` (the trace and its attachments) and `attachment_retention_days` (only the attachment files). All are `null` (off) by default.
 
 ## Pages
 
