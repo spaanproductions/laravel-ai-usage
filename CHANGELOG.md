@@ -2,7 +2,7 @@
 
 All notable changes to `spaanproductions/laravel-ai-usage` are documented in this file.
 
-## Unreleased
+## v0.1.7 - 2026-10-19
 
 - Separate retention for parts of a row, so the rows (tokens and cost) can be kept longer. `model:prune` now also clears the prompt and response with `content_retention_days`, the execution trace (and its attachments) with `trace_retention_days`, and only the attachment files with `attachment_retention_days`. All are off by default.
 - The record page no longer links to attachments the retention has deleted.
