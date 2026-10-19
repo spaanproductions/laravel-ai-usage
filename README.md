@@ -92,7 +92,9 @@ php artisan vendor:publish --tag=ai-usage-config
 |---|---|---|
 | `enabled` | `true` | Record usage (`AI_USAGE_ENABLED`). |
 | `store_content` | `false` | Also store the prompt and response text, truncated to `content_limit` characters. |
+| `content_limit` | `5000` | Characters kept of the stored prompt and response (`AI_USAGE_CONTENT_LIMIT`). |
 | `trace.enabled` | `false` | Store the full execution trace of agent calls (`AI_USAGE_TRACE`), see [Execution traces](#execution-traces). |
+| `trace.content_limit` | `null` | Characters kept of each string in a trace (`AI_USAGE_TRACE_CONTENT_LIMIT`). `null` uses `content_limit`. |
 | `trace.attachments` | `false` | Also copy prompt attachments to `trace.disk` / `trace.path` (`AI_USAGE_TRACE_ATTACHMENTS`). |
 | `redaction.enabled` | `true` | Mask `redaction.keys` and `redaction.patterns` in all stored content (`AI_USAGE_REDACTION`). |
 | `user_model` | `App\Models\User` | The model `user_id` points to. |
@@ -178,7 +180,7 @@ AiUsage::withoutRecording(fn () => (new HealthCheckAgent())->prompt('ping'));
 
 Every row is linked to its trace: `trace_id` is the invocation id of the root call, and a sub-agent (or any call made inside a tool) stores the `parent_invocation_id` and `parent_tool_invocation_id` it was delegated from. This needs laravel/ai 0.11 or later; on older versions every call is its own trace. The record page shows the rows of one trace as a tree with timing bars.
 
-Turn on `AI_USAGE_TRACE=true` to also store the full execution trace on each agent row (laravel/ai 1.x): the instructions, input and output, every model step with its tokens, cost and text, and every tool call with its arguments, result and duration. The record page shows it as a waterfall like a tracing tool, and each span opens its details. Strings are truncated to `content_limit`. Traces can contain document or mail contents, so values under sensitive keys (`*_token`, `password`, `api_key`, …) are masked by `redaction`, which is on by default. Add regex patterns for values in free text (e.g. e-mail addresses) and set a `retention_days`.
+Turn on `AI_USAGE_TRACE=true` to also store the full execution trace on each agent row (laravel/ai 1.x): the instructions, input and output, every model step with its tokens, cost and text, and every tool call with its arguments, result and duration. The record page shows it as a waterfall like a tracing tool, and each span opens its details. Each string is truncated to `trace.content_limit` (by default `content_limit`). Traces can contain document or mail contents, so values under sensitive keys (`*_token`, `password`, `api_key`, …) are masked by `redaction`, which is on by default. Add regex patterns for values in free text (e.g. e-mail addresses) and set a `retention_days`.
 
 With `AI_USAGE_TRACE_ATTACHMENTS=true`, files attached to a prompt are copied to `trace.disk` (default `local`) under `trace.path/{date}/{invocation}/` and can be downloaded from the record page. Remote and provider files are only described, never downloaded. The folders are deleted by `model:prune` together with the rows.
 

@@ -20,7 +20,7 @@ return [
 
 	'store_content' => env('AI_USAGE_STORE_CONTENT', false),
 
-	'content_limit' => 5000,
+	'content_limit' => env('AI_USAGE_CONTENT_LIMIT', 5000),
 
 	/*
 	|--------------------------------------------------------------------------
@@ -31,8 +31,8 @@ return [
 	| record page shows sub-agents as a tree. With tracing on, each agent row
 	| also stores its full execution trace: the instructions, input and output,
 	| every model step (tokens, cost, text) and every tool call (arguments,
-	| result), with timings. Strings are truncated to content_limit and run
-	| through the redaction below.
+	| result), with timings. Each string is truncated to the content_limit
+	| below (null uses the content_limit above) and run through the redaction.
 	|
 	| With attachments on, the files attached to a prompt are copied to the
 	| disk and path below (per day, deleted by the retention settings below).
@@ -42,6 +42,7 @@ return [
 
 	'trace' => [
 		'enabled' => env('AI_USAGE_TRACE', false),
+		'content_limit' => env('AI_USAGE_TRACE_CONTENT_LIMIT'),
 		'attachments' => env('AI_USAGE_TRACE_ATTACHMENTS', false),
 		'disk' => env('AI_USAGE_TRACE_DISK', 'local'),
 		'path' => 'ai-usage/attachments',

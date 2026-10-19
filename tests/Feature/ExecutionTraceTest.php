@@ -73,6 +73,26 @@ class ExecutionTraceTest extends TestCase
 		$this->assertSame(0, resolve(TraceCollector::class)->running());
 	}
 
+	public function test_the_trace_has_its_own_content_limit(): void
+	{
+		config(['ai-usage.trace.enabled' => true, 'ai-usage.store_content' => true, 'ai-usage.content_limit' => 10]);
+		PlainAgent::fake(['A short answer.', 'A short answer.']);
+		$prompt = str_repeat('a', 100);
+
+		(new PlainAgent)->prompt($prompt, provider: 'openai', model: 'gpt-6-luna');
+		$record = AiUsageRecord::query()->sole();
+
+		$this->assertSame(str_repeat('a', 10) . '...', $record->prompt);
+		$this->assertSame(str_repeat('a', 10) . '...', $record->trace['input']);
+
+		config(['ai-usage.trace.content_limit' => 50]);
+		(new PlainAgent)->prompt($prompt, provider: 'openai', model: 'gpt-6-luna');
+		$record = AiUsageRecord::query()->latest('id')->firstOrFail();
+
+		$this->assertSame(str_repeat('a', 10) . '...', $record->prompt);
+		$this->assertSame(str_repeat('a', 50) . '...', $record->trace['input']);
+	}
+
 	public function test_a_failed_tool_is_kept_in_the_trace_of_the_failed_row(): void
 	{
 		config(['ai-usage.trace.enabled' => true]);

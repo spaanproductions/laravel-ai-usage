@@ -2,6 +2,11 @@
 
 All notable changes to `spaanproductions/laravel-ai-usage` are documented in this file.
 
+## Unreleased
+
+- `content_limit` can be set with `AI_USAGE_CONTENT_LIMIT`.
+- Traces have their own limit per string, `trace.content_limit` (`AI_USAGE_TRACE_CONTENT_LIMIT`). It defaults to `content_limit`, so nothing changes unless you set it.
+
 ## v0.1.7 - 2026-10-19
 
 - Separate retention for parts of a row, so the rows (tokens and cost) can be kept longer. `model:prune` now also clears the prompt and response with `content_retention_days`, the execution trace (and its attachments) with `trace_retention_days`, and only the attachment files with `attachment_retention_days`. All are off by default.

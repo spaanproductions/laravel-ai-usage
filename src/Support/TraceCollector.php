@@ -141,7 +141,7 @@ class TraceCollector
 
 	/**
 	 * A value prepared for storage: objects become arrays or strings, sensitive values are
-	 * redacted and strings are truncated to `content_limit`.
+	 * redacted and strings are truncated to `trace.content_limit` (default `content_limit`).
 	 */
 	public static function value(mixed $value): mixed
 	{
@@ -241,9 +241,17 @@ class TraceCollector
 	private static function truncate(mixed $value): mixed
 	{
 		if (is_string($value)) {
-			return Str::limit($value, (int) config('ai-usage.content_limit', 5000));
+			return Str::limit($value, self::contentLimit());
 		}
 
 		return is_array($value) ? array_map(self::truncate(...), $value) : $value;
+	}
+
+	/** `trace.content_limit`, falling back to `content_limit` when it is not set. */
+	private static function contentLimit(): int
+	{
+		$limit = config('ai-usage.trace.content_limit');
+
+		return (int) ($limit === null || $limit === '' ? config('ai-usage.content_limit', 5000) : $limit);
 	}
 }
