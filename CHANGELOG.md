@@ -2,7 +2,7 @@
 
 All notable changes to `spaanproductions/laravel-ai-usage` are documented in this file.
 
-## Unreleased
+## v0.1.8 - 2026-10-19
 
 - `content_limit` can be set with `AI_USAGE_CONTENT_LIMIT`.
 - Traces have their own limit per string, `trace.content_limit` (`AI_USAGE_TRACE_CONTENT_LIMIT`). It defaults to `content_limit`, so nothing changes unless you set it.
